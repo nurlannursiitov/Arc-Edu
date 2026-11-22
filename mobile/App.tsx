@@ -7,7 +7,8 @@ import {
   ScrollView,
   SafeAreaView,
   Dimensions,
-  Platform
+  Platform,
+  Alert
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
@@ -30,6 +31,45 @@ const STUDENT_PROFILE = {
   freedom_bonus_balance: 6250,
   status: 'ACTIVE_STUDENT'
 };
+
+const FREEDOM_PERKS = [
+  {
+    id: 'p-1',
+    partner: 'Freedom Bank',
+    tag: 'ФИНТЕХ ПАКЕТ',
+    title: 'Freedom Black Student VIP',
+    subtitle: '0₸ обслуживание + до 10% кэшбэк на столовые и кофейни кампуса',
+    code: 'ARC_FREEDOM_VIP',
+    icon: '💳'
+  },
+  {
+    id: 'p-2',
+    partner: 'Freedom Mobile',
+    tag: 'РАССРОЧКА 0-0-24',
+    title: 'Студенческая техника Apple & ThinkPad',
+    subtitle: 'Специальная рассрочка без переплат на учебные ноутбуки по Digital ID',
+    code: 'STUDENT_DEV2026',
+    icon: '💻'
+  },
+  {
+    id: 'p-3',
+    partner: 'Freedom Broker',
+    tag: 'ИНВЕСТИЦИИ',
+    title: 'Инвестиционный счет 0% комиссия',
+    subtitle: 'Бесплатное обучение фондовому рынку + бонус 5 000 ₸ на первую сделку',
+    code: 'INVEST_STUDENT',
+    icon: '📈'
+  },
+  {
+    id: 'p-4',
+    partner: 'Dodo Pizza & Kinopark',
+    tag: 'ЛАЙФСТАЙЛ',
+    title: 'Студенческий комбо-пакет',
+    subtitle: 'Пицца 25 см за 1990 ₸ + билеты в кино по 900 ₸ по вторникам',
+    code: 'DODO_ARC_EDU',
+    icon: '🍕'
+  }
+];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'id' | 'attendance' | 'syllabus' | 'teacher' | 'perks'>('id');
@@ -188,9 +228,9 @@ export default function App() {
                 <Text style={styles.actionPillIcon}>📄</Text>
                 <Text style={styles.actionPillText}>eGov Справка</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionPill}>
+              <TouchableOpacity style={styles.actionPill} onPress={() => setActiveTab('perks')}>
                 <Text style={styles.actionPillIcon}>⚡</Text>
-                <Text style={styles.actionPillText}>Пополнить карту</Text>
+                <Text style={styles.actionPillText}>Скидки Freedom</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionPill} onPress={() => setActiveTab('attendance')}>
                 <Text style={styles.actionPillIcon}>📍</Text>
@@ -213,20 +253,63 @@ export default function App() {
           </View>
         )}
 
-        {/* ==================== OTHER TABS: IN PROGRESS ==================== */}
-        {activeTab !== 'id' && (
+        {/* ==================== TAB 5: FREEDOM PERKS (BY ZANGAR) ==================== */}
+        {activeTab === 'perks' && (
+          <View>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>Freedom Ecosystem</Text>
+              <View style={styles.freedomPill}>
+                <Text style={styles.freedomPillText}>FREEDOM VIP</Text>
+              </View>
+            </View>
+
+            <Text style={styles.tabIntroText}>
+              Специальные студенческие условия и повышенный кэшбэк по карте Arc Edu Freedom Card.
+            </Text>
+
+            {FREEDOM_PERKS.map(p => (
+              <View key={p.id} style={styles.perkCard}>
+                <View style={styles.perkHeader}>
+                  <View style={styles.perkIconBox}>
+                    <Text style={styles.perkIconText}>{p.icon}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.perkTag}>{p.tag}</Text>
+                    <Text style={styles.perkTitle}>{p.title}</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.perkSub}>{p.subtitle}</Text>
+
+                <View style={styles.promoCodeStrip}>
+                  <View>
+                    <Text style={styles.promoLabel}>ПРОМОКОД ДЛЯ СТУДЕНТА:</Text>
+                    <Text style={styles.promoCode}>{p.code}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.copyCodeBtn}
+                    onPress={() => Alert.alert('Скопировано!', `Промокод ${p.code} сохранен в буфер обмена.`)}
+                  >
+                    <Text style={styles.copyCodeBtnText}>Скопировать</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ==================== OTHER TABS ==================== */}
+        {activeTab !== 'id' && activeTab !== 'perks' && (
           <View style={styles.placeholderTab}>
             <Text style={styles.placeholderEmoji}>
-              {activeTab === 'attendance' ? '📍' : activeTab === 'syllabus' ? '📚' : activeTab === 'teacher' ? '👨‍🏫' : '🎁'}
+              {activeTab === 'attendance' ? '📍' : activeTab === 'syllabus' ? '📚' : '👨‍🏫'}
             </Text>
             <Text style={styles.placeholderTitle}>
               {activeTab === 'attendance'
                 ? 'Модуль отметки присутствия (NFC & Geofencing)'
                 : activeTab === 'syllabus'
                 ? 'Силлабус и Вики-конспекты'
-                : activeTab === 'teacher'
-                ? 'Панель преподавателя (Dynamic Room Switch)'
-                : 'Партнерские скидки Freedom Ecosystem'}
+                : 'Панель преподавателя (Dynamic Room Switch)'}
             </Text>
             <Text style={styles.placeholderSub}>
               В активной разработке. Следующий этап в плане проекта Arc Edu.
@@ -680,6 +763,99 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 11,
     marginTop: 2,
+  },
+
+  // Tab 5: Freedom Perks Styles
+  tabIntroText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 14,
+  },
+  freedomPill: {
+    backgroundColor: '#0B6623',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  freedomPillText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  perkCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+  },
+  perkHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  perkIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#131D30',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#24324D',
+  },
+  perkIconText: {
+    fontSize: 18,
+  },
+  perkTag: {
+    color: '#00D084',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  perkTitle: {
+    color: '#F8FAFC',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  perkSub: {
+    color: '#94A3B8',
+    fontSize: 11,
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  promoCodeStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#070C16',
+    borderRadius: 8,
+    padding: 10,
+  },
+  promoLabel: {
+    color: '#64748B',
+    fontSize: 8,
+    fontWeight: '700',
+  },
+  promoCode: {
+    color: '#F8FAFC',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.2,
+    marginTop: 2,
+  },
+  copyCodeBtn: {
+    backgroundColor: '#0284C7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  copyCodeBtnText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '800',
   },
 
   placeholderTab: {
