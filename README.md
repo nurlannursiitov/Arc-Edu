@@ -1,54 +1,76 @@
-# 🎓 Arc Edu — Цифровая экосистема студента
+# ⚡ Arc Edu (Platonus 2.0 Analog)
 
-> **Курсовой проект по дисциплине «Веб и мобильные технологии / Архитектура ПО»**  
-> **Стек:** **100% TypeScript** (Node.js + Express & React Native Expo)  
-> **Срок выполнения:** 1 неделя (23.11.2026 – 29.11.2026)  
-> **Группа:** ВТИП-23-2к (2 курс бакалавриата)  
-> **Специальность:** 6B06101 Software Engineering  
+> **Next-Generation Student Experience & Campus FinTech SuperApp for Astana IT University**  
+> 100% TypeScript • React Native (Expo SDK 58) • Inspired by BankApp Architecture
 
 ---
 
-## 👥 Команда проекта и роли
-
-| Студент | Роль | Зона ответственности |
-|---|---|---|
-| **Нурсиитов Нурлан** | **Team Lead / Backend & Geo-core (TS)** | Архитектура TypeScript бэкенда на Express, математический расчет геозоны (Haversine), API динамической смены кабинетов. |
-| **Жұмабек Қуаныш** | **Mobile Frontend Engineer (TS)** | Разработка мобильного клиента на React Native (Expo Go / TypeScript), дизайн Digital ID карты Freedom, NFC/QR сканер. |
-| **Асқар Заңғар** | **Integrations, Data & QA (TS)** | Интеграция с Wikipedia REST API для конспектов силлабуса, каталог скидок Freedom Ecosystem, стресс-тестирование. |
+## 👥 Разработчики (Astana IT University)
+- **Нурсиитов Нурлан** (`nurlannursiitov`) — Team Lead & Core System Architecture
+- **Жұмабек Қуаныш** (`kzumabek543@gmail.com`) — Mobile Frontend & Luxury Neo-Dark UI/UX
+- **Асқар Заңғар** (`zangaraskar08@gmail.com`) — Data Models, Radar Geofencing & Integrations
 
 ---
 
-## 🛠 Технологический стек (100% TypeScript)
-
-- **Backend:** Node.js, Express, TypeScript, TSX (hot reload).
-- **Mobile Client:** React Native, Expo Go (TypeScript).
-- **Архитектура:** Единый типизированный стек (Shared TS Types & Interfaces), REST API.
-- **Геолокация:** Математическая модель Haversine Great-Circle Distance на TypeScript.
-
----
-
-## 📅 Roadmap разработки (1 неделя)
-
-- [x] **День 1 (23 ноя):** Инициализация 100% TypeScript проекта: Express API + Expo mobile, базовая модель студента.
-- [ ] **День 2 (24 ноя):** Digital Student Card (Freedom ко-бренд) и каталог партнерских скидок.
-- [ ] **День 3 (25 ноя):** Математический модуль геозоны Haversine и экран чекина.
-- [ ] **День 4 (26 ноя):** NFC-радар с вибрацией и динамический перенос аудиторий преподавателем.
-- [ ] **День 5 (27 ноя):** Интеграция с Wikipedia REST API и парсер силлабуса.
-- [ ] **День 6 (28 ноя):** QR-видоискатель (fallback) и полировка темы интерфейса.
-- [ ] **День 7 (29 ноя):** Релиз v1.0.0, подготовка к защите курсового проекта.
-
----
-
-## 🚀 Быстрый запуск
-
-### 1. Бэкенд (Node.js + Express / TypeScript):
-```bash
-./start_backend.sh
+## 🏛 Архитектура проекта
+Проект построен по модульной архитектуре автономного Expo React Native приложения:
 ```
-API доступно по адресу: **http://127.0.0.1:8000**
-
-### 2. Мобильное приложение (Expo Go / TypeScript):
-```bash
-./start_mobile.sh
+Arc-Edu/
+├── App.tsx                     # Главный роутер экранов приложения
+├── index.ts                    # Точка входа Expo registerRootComponent
+├── app.json                    # Конфигурация Expo проекта
+├── package.json                # Зависимости (Expo 58, React 19, react-native)
+├── tsconfig.json               # Настройки компилятора TypeScript (strict mode)
+├── assets/                     # Графика, иконки, сплэш-экраны
+└── src/
+    ├── types/
+    │   └── index.ts            # Типизированные интерфейсы (Profile, Grades, Radar, Perks)
+    ├── data/
+    │   └── mockData.ts         # Данные кампуса AITU, студента и Freedom Bank
+    └── components/
+        ├── LoginScreen.tsx          # Авторизация студента AITU + биометрия Face ID
+        ├── ForgotPassword.tsx       # Восстановление доступа через Barcode ID
+        ├── Dashboard.tsx            # Главный хаб: карточка Freedom VIP + Grid Menu
+        ├── DigitalIdScreen.tsx      # Цифровой студенческий билет eGov + 3D flip + Barcode
+        ├── AttendanceScreen.tsx     # Radar Scanner: 60m geofence проверка присутствия
+        ├── GradesJournalScreen.tsx  # Академический журнал Platonus (РК-1, РК-2, Сессия, GPA)
+        ├── ScheduleScreen.tsx       # Интерактивное расписание ПН - СБ с типами занятий
+        ├── SyllabusWikiScreen.tsx   # Силлабус курса + живой Wikipedia API Crawler
+        ├── TeacherControlScreen.tsx # Панель преподавателя (перенос аудиторий в 1 клик)
+        ├── FreedomPerksScreen.tsx   # Студенческие скидки и промокоды Freedom VIP
+        ├── CertificatesScreen.tsx   # Заказ официальных справок ЦОС с ЭЦП
+        ├── ChatScreen.tsx           # Онлайн-чат с академическим эдвайзером
+        ├── SettingScreen.tsx        # Настройки биометрии, пушей и радара
+        ├── ChangePasswordScreen.tsx # Смена пароля от единого аккаунта
+        ├── LanguageScreen.tsx       # Выбор языка (Қазақша / Русский / English)
+        └── AppInfoScreen.tsx        # Сведения о команде и стеке технологий
 ```
-Отсканируйте QR-код в приложении **Expo Go** на смартфоне.
+
+---
+
+## 🚀 Запуск проекта
+
+### 1. Установка зависимостей
+```bash
+npm install
+```
+
+### 2. Запуск в браузере (Web)
+```bash
+npx expo start --web
+```
+
+### 3. Запуск на мобильном телефоне (Expo Go)
+```bash
+npx expo start
+```
+*Отсканируйте появившийся QR-код через приложение **Expo Go** на iOS или Android.*
+
+---
+
+## 🌟 Ключевые возможности Arc Edu
+1. **Freedom Black VIP Student Card** — виртуальная банковская карта и пропуск с отображением баланса, стипендии, GPA и штрихкода.
+2. **Radar Attendance (BLE / Geofence)** — умный чек-ин на лекциях с защитой от спуфинга и проверкой нахождения в радиусе аудитории.
+3. **Platonus Electronic Journal** — полная ведомость успеваемости с баллами за РК-1, РК-2, экзамен и расчет накопительного GPA.
+4. **Wikipedia Syllabus Research** — встроенная интеграция с Wikipedia API для автоматического поиска академических конспектов.
+5. **Teacher Relocation Cockpit** — возможность преподавателя менять аудиторию (например, из 304 в 402), мгновенно оповещая всех студентов и синхронизируя радар.
