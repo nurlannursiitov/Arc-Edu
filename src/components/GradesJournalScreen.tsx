@@ -1,342 +1,422 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-} from "react-native";
-import { SubjectGrade } from "../types";
+} from 'react-native';
+import { useResponsive } from '../hooks/useResponsive';
+import Svg, { Circle } from 'react-native-svg';
+import { Award, CheckCircle2 } from 'lucide-react-native';
+import { StudentProfile, SubjectGrade } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
+import { AcademicService } from '../services/academicService';
 
 interface GradesJournalScreenProps {
+  student: StudentProfile;
   grades: SubjectGrade[];
   gpa: number;
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onBack: () => void;
 }
 
 export const GradesJournalScreen: React.FC<GradesJournalScreenProps> = ({
+  student,
   grades,
   gpa,
+  currentPage,
+  onNavigate,
+  onLogout,
   onBack,
 }) => {
-  const [selectedSemester, setSelectedSemester] = useState<number>(3); // 3rd semester (2nd year)
+  const { isDesktop } = useResponsive();
+  const [selectedSemester, setSelectedSemester] = useState<number>(3);
 
-  const totalCredits = grades.reduce((acc, curr) => acc + curr.credits, 0);
+  const summary = AcademicService.calculateCumulativeGpa(grades);
+  const scholarship = AcademicService.isScholarshipQualified(grades);
+  const displayGpa = gpa || summary.gpa;
+
+  // SVG Ring progress
+  const size = 86;
+  const stroke = 6;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = Math.min(Math.max(displayGpa / 4.0, 0), 1);
+  const strokeDashoffset = circumference * (1 - pct);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Академический журнал</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* GPA Summary Card */}
-        <View style={styles.gpaHeroCard}>
-          <View>
-            <Text style={styles.gpaHeroSubtitle}>ТРАНСКРИПТ AITU / PLATONUS</Text>
-            <Text style={styles.gpaHeroValue}>★ {gpa.toFixed(2)}</Text>
-            <Text style={styles.gpaHeroHint}>
-              Отличная академическая успеваемость • Повышенная стипендия
-            </Text>
-          </View>
-          <View style={styles.creditsPill}>
-            <Text style={styles.creditsNum}>{totalCredits}</Text>
-            <Text style={styles.creditsLabel}>ECTS КРЕДИТОВ</Text>
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Академический журнал"
+      subtitle="Транскрипт AITU, рубежный контроль и расчёт GPA"
+      onBack={onBack}
+    >
+      {/* Hero GPA Card */}
+      <View style={styles.heroCard}>
+        <View style={styles.ringWrap}>
+          <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth={stroke}
+              fill="none"
+            />
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={COLORS.accent}
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={strokeDashoffset}
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+              fill="none"
+            />
+          </Svg>
+          <View style={styles.ringCenter}>
+            <Text style={styles.ringValue}>{displayGpa.toFixed(2)}</Text>
+            <Text style={styles.ringMax}>/ 4.0</Text>
           </View>
         </View>
 
-        {/* Semester Filter Tabs */}
-        <View style={styles.semesterRow}>
-          {[1, 2, 3, 4].map((sem) => (
+        <View style={styles.heroBody}>
+          <View style={styles.heroTagRow}>
+            <Award size={13} color={COLORS.accent} strokeWidth={2} />
+            <Text style={styles.heroTagText}>ТРАНСКРИПТ PLATONUS</Text>
+          </View>
+          <Text style={styles.heroHeading}>
+            {scholarship.qualified ? 'Повышенная стипендия · Грант' : 'Базовый статус'}
+          </Text>
+          <Text style={styles.heroSub}>{scholarship.reason}</Text>
+        </View>
+
+        <View style={styles.creditsBox}>
+          <Text style={styles.creditsNum}>{summary.totalCredits}</Text>
+          <Text style={styles.creditsLabel}>ECTS кредитов</Text>
+        </View>
+      </View>
+
+      {/* Semester Filter */}
+      <View style={styles.semesterRow}>
+        {[1, 2, 3, 4].map((sem) => {
+          const active = selectedSemester === sem;
+          return (
             <TouchableOpacity
               key={sem}
-              style={[
-                styles.semTab,
-                selectedSemester === sem && styles.semTabActive,
-              ]}
+              style={[styles.semTab, active && styles.semTabActive]}
               onPress={() => setSelectedSemester(sem)}
+              activeOpacity={0.78}
             >
-              <Text
-                style={[
-                  styles.semTabText,
-                  selectedSemester === sem && styles.semTabTextActive,
-                ]}
-              >
+              <Text style={[styles.semTabText, active && styles.semTabTextActive]}>
                 Семестр {sem}
               </Text>
             </TouchableOpacity>
-          ))}
-        </View>
+          );
+        })}
+      </View>
 
-        {/* Subject Grades List */}
-        <Text style={styles.sectionTitle}>Дисциплины семестра</Text>
+      {/* Subjects Grid */}
+      <View style={styles.subjectsGrid}>
+        {grades.map((item) => {
+          const evalGrade = AcademicService.evaluateScore(item.total);
+          const barColor =
+            item.total >= 90
+              ? COLORS.accent
+              : item.total >= 75
+              ? COLORS.info
+              : COLORS.warning;
 
-        {grades.map((item) => (
-          <View key={item.id} style={styles.gradeCard}>
-            <View style={styles.gradeHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.subjectCode}>{item.code} • {item.credits} ECTS</Text>
-                <Text style={styles.subjectName}>{item.subject}</Text>
-                <Text style={styles.profName}>{item.professor}</Text>
+          return (
+            <View
+              key={item.id}
+              style={[styles.gradeCard, isDesktop && styles.gradeCardDesktop]}
+            >
+              <View style={styles.gradeHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.subjectCode}>
+                    {item.code} · {item.credits} ECTS
+                  </Text>
+                  <Text style={styles.subjectName}>{item.subject}</Text>
+                  <Text style={styles.profName}>{item.professor}</Text>
+                </View>
+
+                <View style={styles.letterPill}>
+                  <Text style={styles.letterGrade}>{item.letterGrade || evalGrade.letter}</Text>
+                  <Text style={styles.totalScore}>{item.total}/100</Text>
+                </View>
               </View>
-              <View style={styles.letterBadge}>
-                <Text style={styles.letterGrade}>{item.letterGrade}</Text>
-                <Text style={styles.totalScore}>{item.total}/100</Text>
+
+              <View style={styles.breakdownRow}>
+                <View style={styles.breakdownCell}>
+                  <Text style={styles.breakdownLabel}>РК-1</Text>
+                  <Text style={styles.breakdownScore}>{item.rk1}</Text>
+                </View>
+                <View style={styles.breakdownDiv} />
+                <View style={styles.breakdownCell}>
+                  <Text style={styles.breakdownLabel}>РК-2</Text>
+                  <Text style={styles.breakdownScore}>{item.rk2}</Text>
+                </View>
+                <View style={styles.breakdownDiv} />
+                <View style={styles.breakdownCell}>
+                  <Text style={styles.breakdownLabel}>Экзамен</Text>
+                  <Text style={styles.breakdownScore}>{item.exam}</Text>
+                </View>
+                <View style={styles.breakdownDiv} />
+                <View style={styles.breakdownCell}>
+                  <Text style={styles.breakdownLabel}>Посещ.</Text>
+                  <View style={styles.attRow}>
+                    <CheckCircle2 size={11} color={COLORS.accent} strokeWidth={2} />
+                    <Text style={[styles.breakdownScore, { color: COLORS.accentBright }]}>
+                      {item.attendanceRate}%
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${Math.min(item.total, 100)}%`, backgroundColor: barColor },
+                  ]}
+                />
               </View>
             </View>
-
-            {/* Assessment Breakdown: РК-1, РК-2, Сессия */}
-            <View style={styles.breakdownRow}>
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>РК-1 (30%)</Text>
-                <Text style={styles.breakdownScore}>{item.rk1}</Text>
-              </View>
-              <View style={styles.breakdownDivider} />
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>РК-2 (30%)</Text>
-                <Text style={styles.breakdownScore}>{item.rk2}</Text>
-              </View>
-              <View style={styles.breakdownDivider} />
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>Экзамен (40%)</Text>
-                <Text style={styles.breakdownScore}>{item.exam}</Text>
-              </View>
-              <View style={styles.breakdownDivider} />
-              <View style={styles.breakdownItem}>
-                <Text style={styles.breakdownLabel}>Посещаемость</Text>
-                <Text style={[styles.breakdownScore, { color: "#10B981" }]}>
-                  {item.attendanceRate}%
-                </Text>
-              </View>
-            </View>
-
-            {/* Progress bar */}
-            <View style={styles.progressBarBg}>
-              <View
-                style={[
-                  styles.progressBarFill,
-                  {
-                    width: `${Math.min(item.total, 100)}%`,
-                    backgroundColor:
-                      item.total >= 90
-                        ? "#10B981"
-                        : item.total >= 75
-                        ? "#00E5FF"
-                        : item.total >= 50
-                        ? "#F59E0B"
-                        : "#EF4444",
-                  },
-                ]}
-              />
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+          );
+        })}
+      </View>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A11",
+  heroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 20,
+    gap: 18,
+    marginBottom: 18,
+    flexWrap: 'wrap',
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+  ringWrap: {
+    width: 86,
+    height: 86,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ringCenter: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  ringValue: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: FONT_FAMILY.mono,
+  },
+  ringMax: {
+    color: COLORS.textTertiary,
+    fontSize: 10,
+    fontFamily: FONT_FAMILY.mono,
+  },
+  heroBody: {
+    flex: 1,
+    minWidth: 180,
+    gap: 4,
+  },
+  heroTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroTagText: {
+    color: COLORS.accentBright,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  heroHeading: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  heroSub: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  creditsBox: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  gpaHeroCard: {
-    backgroundColor: "#111827",
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(0, 229, 255, 0.3)",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  gpaHeroSubtitle: {
-    fontSize: 10,
-    fontWeight: "800",
-    color: "#00E5FF",
-    letterSpacing: 1,
-  },
-  gpaHeroValue: {
-    fontSize: 34,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    marginVertical: 4,
-  },
-  gpaHeroHint: {
-    fontSize: 11,
-    color: "#94A3B8",
-    maxWidth: 200,
-  },
-  creditsPill: {
-    backgroundColor: "rgba(0, 229, 255, 0.1)",
-    borderWidth: 1,
-    borderColor: "#00E5FF",
-    borderRadius: 14,
-    padding: 12,
-    alignItems: "center",
+    alignItems: 'center',
   },
   creditsNum: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#00E5FF",
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: FONT_FAMILY.mono,
   },
   creditsLabel: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: "#CBD5E1",
+    color: COLORS.textTertiary,
+    fontSize: 10,
     marginTop: 2,
+    fontFamily: FONT_FAMILY.sans,
   },
+
   semesterRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: 8,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   semTab: {
     flex: 1,
-    paddingVertical: 10,
-    backgroundColor: "#111827",
-    borderRadius: 12,
-    alignItems: "center",
+    paddingVertical: 9,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: COLORS.border,
+    alignItems: 'center',
   },
   semTabActive: {
-    backgroundColor: "rgba(0, 229, 255, 0.15)",
-    borderColor: "#00E5FF",
+    backgroundColor: COLORS.surfaceElevated,
+    borderColor: COLORS.borderAccent,
   },
   semTabText: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#64748B",
-    fontWeight: "600",
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
   },
   semTabTextActive: {
-    color: "#00E5FF",
-    fontWeight: "700",
+    color: COLORS.accentBright,
+    fontWeight: '600',
   },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginBottom: 12,
+
+  subjectsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 14,
   },
   gradeCard: {
-    backgroundColor: "#111827",
-    borderRadius: 16,
-    padding: 16,
+    width: '100%',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    marginBottom: 14,
+    borderColor: COLORS.border,
+    padding: 18,
+    gap: 14,
+  },
+  gradeCardDesktop: {
+    width: '49%',
   },
   gradeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
   },
   subjectCode: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#64748B",
-    letterSpacing: 0.5,
+    color: COLORS.textTertiary,
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.mono,
   },
   subjectName: {
+    color: COLORS.textPrimary,
     fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    marginTop: 2,
+    fontWeight: '600',
+    marginTop: 3,
+    fontFamily: FONT_FAMILY.sans,
   },
   profName: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#94A3B8",
-    marginTop: 2,
+    marginTop: 3,
+    fontFamily: FONT_FAMILY.sans,
   },
-  letterBadge: {
-    alignItems: "flex-end",
+  letterPill: {
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderAccent,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignItems: 'center',
+    minWidth: 54,
   },
   letterGrade: {
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#00E5FF",
+    color: COLORS.accentBright,
+    fontSize: 17,
+    fontWeight: '700',
+    fontFamily: FONT_FAMILY.sans,
   },
   totalScore: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "600",
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    fontFamily: FONT_FAMILY.mono,
   },
   breakdownRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
+    flexDirection: 'row',
+    backgroundColor: COLORS.bg,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
   },
-  breakdownItem: {
-    alignItems: "center",
+  breakdownCell: {
     flex: 1,
+    alignItems: 'center',
+    gap: 2,
   },
   breakdownLabel: {
+    color: COLORS.textTertiary,
     fontSize: 10,
-    color: "#64748B",
-    marginBottom: 2,
+    fontFamily: FONT_FAMILY.sans,
   },
   breakdownScore: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.mono,
   },
-  breakdownDivider: {
+  attRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  breakdownDiv: {
     width: 1,
-    height: "100%",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: COLORS.border,
   },
-  progressBarBg: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "rgba(255,255,255,0.06)",
-    overflow: "hidden",
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    overflow: 'hidden',
   },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 3,
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
 });

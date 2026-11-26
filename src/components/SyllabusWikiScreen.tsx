@@ -1,24 +1,37 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   TextInput,
   ActivityIndicator,
-} from "react-native";
-import { SyllabusTopic } from "../types";
+} from 'react-native';
+import { BookOpen, Search, CheckCircle2, Clock, Globe } from 'lucide-react-native';
+import { StudentProfile, SyllabusTopic } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
 
 interface SyllabusWikiScreenProps {
+  student: StudentProfile;
   topics: SyllabusTopic[];
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onBack: () => void;
 }
 
-export const SyllabusWikiScreen: React.FC<SyllabusWikiScreenProps> = ({ topics, onBack }) => {
+export const SyllabusWikiScreen: React.FC<SyllabusWikiScreenProps> = ({
+  student,
+  topics,
+  currentPage,
+  onNavigate,
+  onLogout,
+  onBack,
+}) => {
   const [selectedTopic, setSelectedTopic] = useState<SyllabusTopic>(topics[0]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [wikiResults, setWikiResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -31,380 +44,375 @@ export const SyllabusWikiScreen: React.FC<SyllabusWikiScreenProps> = ({ topics, 
       )}&format=json&origin=*`;
       const res = await fetch(url);
       const data = await res.json();
-      if (data && data.query && data.query.search) {
+      if (data?.query?.search) {
         setWikiResults(data.query.search);
       }
     } catch (e) {
-      console.log("Wiki API Error:", e);
+      console.log('Wiki API Error:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  const cleanSnippet = (html: string) => {
-    return html.replace(/<[^>]*>?/gm, "");
-  };
+  const cleanSnippet = (html: string) => html.replace(/<[^>]*>?/gm, '');
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Силлабус & Wiki Конспекты</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>Тематический план курса (15 Недель)</Text>
-
-        {/* Horizontal Topic Weeks */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.weeksRow}
-        >
-          {topics.map((t) => (
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Силлабус и Wiki"
+      subtitle="Тематический план курса и научная база знаний"
+      onBack={onBack}
+    >
+      {/* Week Chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, marginBottom: 18 }}
+        contentContainerStyle={styles.weeksRow}
+      >
+        {topics.map((t) => {
+          const active = selectedTopic.id === t.id;
+          return (
             <TouchableOpacity
               key={t.id}
-              style={[
-                styles.topicChip,
-                selectedTopic.id === t.id && styles.topicChipActive,
-              ]}
+              style={[styles.weekChip, active && styles.weekChipActive]}
               onPress={() => {
                 setSelectedTopic(t);
                 setSearchQuery(t.title);
                 searchWikipedia(t.title);
               }}
+              activeOpacity={0.78}
             >
-              <Text
-                style={[
-                  styles.topicWeekNum,
-                  selectedTopic.id === t.id && styles.topicWeekNumActive,
-                ]}
-              >
+              <Text style={[styles.weekLabel, active && styles.weekLabelActive]}>
                 Неделя {t.week}
               </Text>
               <Text
-                style={[
-                  styles.topicChipTitle,
-                  selectedTopic.id === t.id && styles.topicChipTitleActive,
-                ]}
+                style={[styles.weekTitle, active && { color: COLORS.textPrimary }]}
                 numberOfLines={1}
               >
                 {t.title}
               </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          );
+        })}
+      </ScrollView>
 
-        {/* Selected Topic Detail Card */}
-        <View style={styles.activeTopicCard}>
-          <View style={styles.topicHeader}>
-            <Text style={styles.activeWeek}>НЕДЕЛЯ {selectedTopic.week} • СИЛЛАБУС AITU</Text>
-            <View
+      {/* Selected Topic Detail */}
+      <View style={styles.topicCard}>
+        <View style={styles.topicTopRow}>
+          <Text style={styles.topicEyebrow}>НЕДЕЛЯ {selectedTopic.week} · СИЛЛАБУС</Text>
+          <View
+            style={[
+              styles.statusPill,
+              { backgroundColor: selectedTopic.completed ? COLORS.accentSoft : COLORS.warningSoft },
+            ]}
+          >
+            {selectedTopic.completed ? (
+              <CheckCircle2 size={12} color={COLORS.accent} strokeWidth={2} />
+            ) : (
+              <Clock size={12} color={COLORS.warning} strokeWidth={2} />
+            )}
+            <Text
               style={[
-                styles.statusBadge,
-                { backgroundColor: selectedTopic.completed ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)" },
+                styles.statusText,
+                { color: selectedTopic.completed ? COLORS.accentBright : COLORS.warning },
               ]}
             >
-              <Text
-                style={{
-                  color: selectedTopic.completed ? "#10B981" : "#F59E0B",
-                  fontSize: 10,
-                  fontWeight: "800",
-                }}
-              >
-                {selectedTopic.completed ? "ИЗУЧЕНО ✓" : "В ПРОЦЕССЕ"}
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.activeTopicTitle}>{selectedTopic.title}</Text>
-          <Text style={styles.activeTopicDesc}>{selectedTopic.description}</Text>
-
-          <View style={styles.readingList}>
-            <Text style={styles.readingListTitle}>Рекомендуемая литература:</Text>
-            {selectedTopic.readingMaterials.map((m, i) => (
-              <Text key={i} style={styles.readingItem}>
-                • {m}
-              </Text>
-            ))}
+              {selectedTopic.completed ? 'Изучено' : 'В процессе'}
+            </Text>
           </View>
         </View>
 
-        {/* Live Wikipedia Knowledge Crawler */}
-        <View style={styles.wikiCard}>
-          <View style={styles.wikiHeader}>
-            <Text style={styles.wikiLogo}>🌐</Text>
-            <View>
-              <Text style={styles.wikiTitle}>Wikipedia Research Crawler</Text>
-              <Text style={styles.wikiSub}>Автоматический поиск академических статей</Text>
-            </View>
-          </View>
+        <Text style={styles.topicHeading}>{selectedTopic.title}</Text>
+        <Text style={styles.topicDesc}>{selectedTopic.description}</Text>
 
-          <View style={styles.searchRow}>
+        <View style={styles.readingBox}>
+          <Text style={styles.readingHeader}>Рекомендуемая литература</Text>
+          {selectedTopic.readingMaterials.map((m, i) => (
+            <View key={i} style={styles.readingRow}>
+              <BookOpen size={13} color={COLORS.accent} strokeWidth={1.75} />
+              <Text style={styles.readingText}>{m}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Live Wikipedia Research Crawler */}
+      <View style={styles.wikiCard}>
+        <View style={styles.wikiHeader}>
+          <View style={styles.wikiIconBox}>
+            <Globe size={18} color={COLORS.accent} strokeWidth={1.75} />
+          </View>
+          <View>
+            <Text style={styles.wikiTitle}>Wikipedia Research</Text>
+            <Text style={styles.wikiSub}>Быстрый поиск академических определений</Text>
+          </View>
+        </View>
+
+        <View style={styles.searchRow}>
+          <View style={styles.searchInputWrap}>
+            <Search size={15} color={COLORS.textTertiary} strokeWidth={1.75} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Поиск темы в Википедии..."
-              placeholderTextColor="#64748B"
+              placeholder="Введите термин или тему..."
+              placeholderTextColor={COLORS.textTertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
-            <TouchableOpacity
-              style={styles.searchBtn}
-              onPress={() => searchWikipedia(searchQuery)}
-            >
-              <Text style={styles.searchBtnText}>Найти</Text>
-            </TouchableOpacity>
           </View>
-
-          {loading && (
-            <View style={styles.loadingBox}>
-              <ActivityIndicator color="#00E5FF" />
-              <Text style={styles.loadingText}>Загрузка академических данных...</Text>
-            </View>
-          )}
-
-          {wikiResults.map((item, index) => (
-            <View key={index} style={styles.wikiResultItem}>
-              <Text style={styles.wikiItemTitle}>{item.title}</Text>
-              <Text style={styles.wikiItemSnippet}>
-                {cleanSnippet(item.snippet)}...
-              </Text>
-              <View style={styles.wikiBadgeRow}>
-                <Text style={styles.wikiWordCount}>Слов: {item.wordcount}</Text>
-                <Text style={styles.wikiVerified}>ru.wikipedia.org ✓</Text>
-              </View>
-            </View>
-          ))}
+          <TouchableOpacity
+            style={styles.searchBtn}
+            onPress={() => searchWikipedia(searchQuery)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.searchBtnText}>Найти</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+
+        {loading && (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={COLORS.accent} />
+            <Text style={styles.loadingText}>Загрузка материалов...</Text>
+          </View>
+        )}
+
+        {wikiResults.map((item, idx) => (
+          <View key={idx} style={styles.resultCard}>
+            <Text style={styles.resultTitle}>{item.title}</Text>
+            <Text style={styles.resultSnippet}>{cleanSnippet(item.snippet)}...</Text>
+            <View style={styles.resultFooter}>
+              <Text style={styles.resultMeta}>Слов: {item.wordcount}</Text>
+              <Text style={styles.resultSource}>ru.wikipedia.org</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A11",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  sectionTitle: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
   weeksRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 20,
+    flexDirection: 'row',
+    gap: 10,
   },
-  topicChip: {
-    backgroundColor: "#111827",
-    borderRadius: 14,
-    paddingVertical: 10,
+  weekChip: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    minWidth: 110,
+    paddingVertical: 10,
+    maxWidth: 180,
   },
-  topicChipActive: {
-    backgroundColor: "rgba(0, 229, 255, 0.15)",
-    borderColor: "#00E5FF",
+  weekChipActive: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderColor: COLORS.borderAccent,
   },
-  topicWeekNum: {
+  weekLabel: {
+    color: COLORS.textTertiary,
     fontSize: 10,
-    fontWeight: "800",
-    color: "#64748B",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  topicWeekNumActive: {
-    color: "#00E5FF",
+  weekLabelActive: {
+    color: COLORS.accentBright,
   },
-  topicChipTitle: {
+  weekTitle: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#CBD5E1",
-    fontWeight: "600",
+    fontWeight: '600',
     marginTop: 2,
+    fontFamily: FONT_FAMILY.sans,
   },
-  topicChipTitleActive: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  activeTopicCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 18,
+  topicCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "rgba(0, 229, 255, 0.3)",
-    marginBottom: 20,
+    borderColor: COLORS.border,
+    padding: 20,
+    marginBottom: 18,
+    gap: 10,
   },
-  topicHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
+  topicTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  activeWeek: {
+  topicEyebrow: {
+    color: COLORS.textTertiary,
     fontSize: 10,
-    fontWeight: "800",
-    color: "#00E5FF",
-    letterSpacing: 1,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    fontFamily: FONT_FAMILY.sans,
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: RADIUS.pill,
   },
-  activeTopicTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    marginBottom: 8,
-  },
-  activeTopicDesc: {
-    fontSize: 13,
-    color: "#94A3B8",
-    lineHeight: 18,
-    marginBottom: 14,
-  },
-  readingList: {
-    backgroundColor: "rgba(255,255,255,0.03)",
-    padding: 12,
-    borderRadius: 12,
-  },
-  readingListTitle: {
+  statusText: {
     fontSize: 11,
-    fontWeight: "700",
-    color: "#CBD5E1",
-    marginBottom: 6,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  readingItem: {
+  topicHeading: {
+    color: COLORS.textPrimary,
+    fontSize: 17,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  topicDesc: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  readingBox: {
+    backgroundColor: COLORS.bg,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    marginTop: 4,
+    gap: 8,
+  },
+  readingHeader: {
+    color: COLORS.textPrimary,
     fontSize: 12,
-    color: "#94A3B8",
-    marginBottom: 2,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  readingRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  readingText: {
+    flex: 1,
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+    fontFamily: FONT_FAMILY.sans,
   },
   wikiCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 18,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: COLORS.border,
+    padding: 20,
+    gap: 14,
   },
   wikiHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-    marginBottom: 14,
   },
-  wikiLogo: {
-    fontSize: 26,
+  wikiIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   wikiTitle: {
+    color: COLORS.textPrimary,
     fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
   wikiSub: {
-    fontSize: 11,
-    color: "#64748B",
+    color: COLORS.textTertiary,
+    fontSize: 12,
+    fontFamily: FONT_FAMILY.sans,
   },
   searchRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
+    gap: 10,
+  },
+  searchInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    marginBottom: 16,
+    backgroundColor: COLORS.bg,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
   },
   searchInput: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
+    paddingVertical: 11,
     fontSize: 13,
+    fontFamily: FONT_FAMILY.sans,
   },
   searchBtn: {
-    backgroundColor: "#00E5FF",
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    justifyContent: "center",
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 18,
+    borderRadius: RADIUS.md,
+    justifyContent: 'center',
   },
   searchBtnText: {
-    color: "#050B14",
+    color: COLORS.textInverse,
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  loadingBox: {
-    alignItems: "center",
-    paddingVertical: 20,
+  loadingWrap: {
+    alignItems: 'center',
+    paddingVertical: 16,
     gap: 8,
   },
   loadingText: {
-    color: "#94A3B8",
+    color: COLORS.textSecondary,
     fontSize: 12,
+    fontFamily: FONT_FAMILY.sans,
   },
-  wikiResultItem: {
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
+  resultCard: {
+    backgroundColor: COLORS.bg,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    gap: 6,
   },
-  wikiItemTitle: {
+  resultTitle: {
+    color: COLORS.textPrimary,
     fontSize: 14,
-    fontWeight: "700",
-    color: "#00E5FF",
-    marginBottom: 4,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  wikiItemSnippet: {
+  resultSnippet: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#CBD5E1",
-    lineHeight: 16,
+    lineHeight: 17,
+    fontFamily: FONT_FAMILY.sans,
   },
-  wikiBadgeRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
+  resultFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 4,
   },
-  wikiWordCount: {
+  resultMeta: {
+    color: COLORS.textTertiary,
     fontSize: 10,
-    color: "#64748B",
+    fontFamily: FONT_FAMILY.mono,
   },
-  wikiVerified: {
+  resultSource: {
+    color: COLORS.accentBright,
     fontSize: 10,
-    color: "#10B981",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.mono,
   },
 });

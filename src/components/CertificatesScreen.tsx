@@ -1,267 +1,301 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
   Alert,
-} from "react-native";
-import { CertificateRequest } from "../types";
+} from 'react-native';
+import { useResponsive } from '../hooks/useResponsive';
+import { FileText, ShieldCheck, Clock, Download, Plus, CheckCircle2 } from 'lucide-react-native';
+import { CertificateRequest, StudentProfile } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
 
 interface CertificatesScreenProps {
+  student: StudentProfile;
   certificates: CertificateRequest[];
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onBack: () => void;
 }
 
 export const CertificatesScreen: React.FC<CertificatesScreenProps> = ({
+  student,
   certificates,
+  currentPage,
+  onNavigate,
+  onLogout,
   onBack,
 }) => {
+  const { isDesktop } = useResponsive();
   const [list, setList] = useState<CertificateRequest[]>(certificates);
 
   const handleOrderNew = () => {
     const newCert: CertificateRequest = {
       id: `cert-${Date.now()}`,
-      title: "Справка по месту требования (ГКП на ПХВ)",
-      requestDate: new Date().toLocaleDateString("ru-RU"),
-      status: "pending",
+      title: 'Справка по месту требования (ГКП на ПХВ)',
+      requestDate: new Date().toLocaleDateString('ru-RU'),
+      status: 'pending',
       qrVerified: false,
     };
     setList([newCert, ...list]);
     Alert.alert(
-      "Запрос сформирован! 📄",
-      "Заявка на справку с места учебы отправлена в ЦОС (Центр обслуживания студентов) AITU. Готовность в течение 10 минут."
+      'Запрос сформирован',
+      'Заявка на справку с места учёбы отправлена в ЦОС AITU. Ориентировочная готовность — 10 минут.'
     );
   };
 
   const downloadCert = (cert: CertificateRequest) => {
     Alert.alert(
-      "Цифровая справка eGov",
-      `Документ "${cert.title}" подписан ЭЦП Ректора Astana IT University и зарегистрирован в единой базе НОБД РК. Скачивание PDF файла запущено.`
+      'Цифровая справка eGov',
+      `Документ «${cert.title}» подписан ЭЦП ректора Astana IT University и зарегистрирован в НОБД РК.`
     );
   };
 
+  const orderButton = (
+    <TouchableOpacity style={styles.orderBtn} onPress={handleOrderNew} activeOpacity={0.85}>
+      <Plus size={15} color={COLORS.textInverse} strokeWidth={2.2} />
+      <Text style={styles.orderBtnText}>Заказать справку</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Справки и Документы</Text>
-        <View style={styles.headerSpacer} />
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Справки и документы"
+      subtitle="Центр обслуживания студентов (ЦОС) с ЭЦП и eGov QR"
+      onBack={onBack}
+      rightAction={isDesktop ? orderButton : undefined}
+    >
+      <View style={styles.heroCard}>
+        <View style={styles.heroLeft}>
+          <View style={styles.eyebrowRow}>
+            <ShieldCheck size={14} color={COLORS.accent} strokeWidth={2} />
+            <Text style={styles.eyebrowText}>EGOV INTEGRATION</Text>
+          </View>
+          <Text style={styles.heroTitle}>Официальные справки в электронном виде</Text>
+          <Text style={styles.heroDesc}>
+            Все документы заверяются электронной цифровой подписью и имеют юридическую силу оригинала.
+          </Text>
+        </View>
+        {!isDesktop && orderButton}
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroCard}>
-          <Text style={styles.heroBadge}>ЦОС • eGov Integration</Text>
-          <Text style={styles.heroTitle}>Заказ справок с ЭЦП</Text>
-          <Text style={styles.heroDesc}>
-            Все справки заверяются официальной цифровой подписью и QR-валидацией министерства просвещения и науки РК.
-          </Text>
-          <TouchableOpacity style={styles.orderBtn} onPress={handleOrderNew}>
-            <Text style={styles.orderBtnText}>+ Заказать новую справку</Text>
-          </TouchableOpacity>
-        </View>
+      <Text style={styles.sectionTitle}>История запросов</Text>
 
-        <Text style={styles.sectionTitle}>История запросов</Text>
+      <View style={styles.listGrid}>
+        {list.map((cert) => {
+          const isReady = cert.status === 'ready';
+          return (
+            <View key={cert.id} style={[styles.certCard, isDesktop && styles.certCardDesktop]}>
+              <View style={styles.certTop}>
+                <View style={styles.iconBox}>
+                  <FileText size={18} color={COLORS.textPrimary} strokeWidth={1.75} />
+                </View>
 
-        {list.map((cert) => (
-          <View key={cert.id} style={styles.certCard}>
-            <View style={styles.certHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.certTitle}>{cert.title}</Text>
-                <Text style={styles.certDate}>Заказано: {cert.requestDate}</Text>
-              </View>
-              <View
-                style={[
-                  styles.statusBadge,
-                  {
-                    backgroundColor:
-                      cert.status === "ready"
-                        ? "rgba(16, 185, 129, 0.15)"
-                        : cert.status === "pending"
-                        ? "rgba(245, 158, 11, 0.15)"
-                        : "rgba(239, 68, 68, 0.15)",
-                  },
-                ]}
-              >
-                <Text
-                  style={{
-                    color:
-                      cert.status === "ready"
-                        ? "#10B981"
-                        : cert.status === "pending"
-                        ? "#F59E0B"
-                        : "#EF4444",
-                    fontSize: 11,
-                    fontWeight: "800",
-                  }}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.certTitle}>{cert.title}</Text>
+                  <Text style={styles.certDate}>Заказано {cert.requestDate}</Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.statusPill,
+                    { backgroundColor: isReady ? COLORS.accentSoft : COLORS.warningSoft },
+                  ]}
                 >
-                  {cert.status === "ready"
-                    ? "ГОТОВО ✓"
-                    : cert.status === "pending"
-                    ? "В ОБРАБОТКЕ ⏳"
-                    : "ОТКЛОНЕНО"}
+                  {isReady ? (
+                    <CheckCircle2 size={11} color={COLORS.accent} strokeWidth={2.2} />
+                  ) : (
+                    <Clock size={11} color={COLORS.warning} strokeWidth={2.2} />
+                  )}
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: isReady ? COLORS.accentBright : COLORS.warning },
+                    ]}
+                  >
+                    {isReady ? 'Готово' : 'В обработке'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.certFooter}>
+                <Text style={styles.verifyLabel}>
+                  {cert.qrVerified ? 'ЭЦП и QR верифицированы' : 'На проверке в деканате'}
                 </Text>
+
+                {isReady && (
+                  <TouchableOpacity
+                    style={styles.downloadBtn}
+                    onPress={() => downloadCert(cert)}
+                    activeOpacity={0.8}
+                  >
+                    <Download size={13} color={COLORS.accentBright} strokeWidth={2} />
+                    <Text style={styles.downloadBtnText}>Скачать PDF</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
-
-            <View style={styles.certFooter}>
-              <Text style={styles.certQrStatus}>
-                {cert.qrVerified ? "🛡 ЭЦП и QR верифицированы" : "⏳ Проверка деканатом"}
-              </Text>
-
-              {cert.status === "ready" && (
-                <TouchableOpacity
-                  style={styles.downloadBtn}
-                  onPress={() => downloadCert(cert)}
-                >
-                  <Text style={styles.downloadBtnText}>Скачать PDF ↓</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+          );
+        })}
+      </View>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A11",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  heroCard: {
-    backgroundColor: "#111827",
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "rgba(20, 184, 166, 0.4)",
-    marginBottom: 24,
-  },
-  heroBadge: {
-    color: "#14B8A6",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  heroTitle: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 6,
-  },
-  heroDesc: {
-    color: "#94A3B8",
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 16,
-  },
   orderBtn: {
-    backgroundColor: "#14B8A6",
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
   },
   orderBtnText: {
-    color: "#050B14",
+    color: COLORS.textInverse,
     fontSize: 13,
-    fontWeight: "800",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  heroCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 20,
+    marginBottom: 22,
+    gap: 14,
+  },
+  heroLeft: {
+    gap: 6,
+  },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  eyebrowText: {
+    color: COLORS.accentBright,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  heroTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 17,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  heroDesc: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: FONT_FAMILY.sans,
   },
   sectionTitle: {
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: '600',
     marginBottom: 12,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  listGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
   },
   certCard: {
-    backgroundColor: "#111827",
-    borderRadius: 16,
-    padding: 16,
+    width: '100%',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    marginBottom: 12,
+    borderColor: COLORS.border,
+    padding: 16,
+    gap: 14,
+    justifyContent: 'space-between',
   },
-  certHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
+  certCardDesktop: {
+    width: '49%',
+  },
+  certTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  iconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   certTitle: {
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
     fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 4,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
   certDate: {
-    color: "#64748B",
-    fontSize: 12,
+    color: COLORS.textTertiary,
+    fontSize: 11,
+    marginTop: 3,
+    fontFamily: FONT_FAMILY.sans,
   },
-  statusBadge: {
-    paddingVertical: 3,
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 8,
-    borderRadius: 6,
+    paddingVertical: 4,
+    borderRadius: RADIUS.pill,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
   certFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.04)",
-    paddingTop: 10,
+    borderTopColor: COLORS.border,
+    paddingTop: 12,
   },
-  certQrStatus: {
-    color: "#94A3B8",
+  verifyLabel: {
+    color: COLORS.textSecondary,
     fontSize: 11,
+    fontFamily: FONT_FAMILY.sans,
   },
   downloadBtn: {
-    backgroundColor: "rgba(20, 184, 166, 0.15)",
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.accentSoft,
     borderWidth: 1,
-    borderColor: "#14B8A6",
+    borderColor: COLORS.borderAccent,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
   },
   downloadBtnText: {
-    color: "#14B8A6",
+    color: COLORS.accentBright,
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
 });

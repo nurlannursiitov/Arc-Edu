@@ -1,558 +1,525 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  Platform,
   Alert,
-} from "react-native";
-import { StudentProfile } from "../types";
+} from 'react-native';
+import { useResponsive } from '../hooks/useResponsive';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ShieldCheck, Wifi, Share2, RotateCw } from 'lucide-react-native';
+import { StudentProfile } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
+import { EmvChipSvg, RealBarcodeSvg, RealQrSvg } from './ui/QrBarcodeSvg';
 
 interface DigitalIdScreenProps {
   student: StudentProfile;
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onBack: () => void;
 }
 
-export const DigitalIdScreen: React.FC<DigitalIdScreenProps> = ({ student, onBack }) => {
+export const DigitalIdScreen: React.FC<DigitalIdScreenProps> = ({
+  student,
+  currentPage,
+  onNavigate,
+  onLogout,
+  onBack,
+}) => {
+  const { isDesktop } = useResponsive();
   const [flipped, setFlipped] = useState(false);
+
+  const initials = student.fullName
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('');
 
   const handleShare = () => {
     Alert.alert(
-      "eGov Mobile QR",
-      "QR-код студенческого билета сгенерирован и подписан ЭЦП. Действителен 15 минут для прохода через турникеты и подтверждения статуса студента."
+      'eGov Mobile QR',
+      'QR-код студенческого билета сгенерирован и подписан ЭЦП. Действителен 15 минут для турникетов и подтверждения статуса.'
     );
   };
 
+  const egovBadge = (
+    <TouchableOpacity style={styles.egovPill} onPress={handleShare} activeOpacity={0.8}>
+      <ShieldCheck size={14} color={COLORS.accent} strokeWidth={2} />
+      <Text style={styles.egovPillText}>eGov Verified</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Digital Student ID</Text>
-        <TouchableOpacity style={styles.egovPill} onPress={handleShare}>
-          <Text style={styles.egovText}>🇰🇿 eGov Mobile</Text>
-        </TouchableOpacity>
-      </View>
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Digital Student ID"
+      subtitle="Официальный пропуск и удостоверение AITU"
+      onBack={onBack}
+      rightAction={egovBadge}
+    >
+      <View style={[styles.layoutGrid, isDesktop && styles.layoutGridDesktop]}>
+        {/* Left: Interactive Card */}
+        <View style={isDesktop ? { flex: 1.05 } : undefined}>
+          <TouchableOpacity
+            activeOpacity={0.94}
+            onPress={() => setFlipped(!flipped)}
+          >
+            <LinearGradient
+              colors={flipped ? ['#12141B', '#0B0D12'] : ['#191D26', '#10131A', '#0B0D12']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.idCard}
+            >
+              <LinearGradient
+                colors={['rgba(16, 185, 129, 0.16)', 'rgba(16, 185, 129, 0.02)', 'transparent']}
+                start={{ x: 1, y: 0 }}
+                end={{ x: 0.1, y: 0.85 }}
+                style={StyleSheet.absoluteFill}
+                pointerEvents="none"
+              />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.subtitle}>
-          Официальный цифровой студенческий билет & FinTech VIP Pass Astana IT University
-        </Text>
-
-        {/* Luxury Glassmorphism ID Card */}
-        <TouchableOpacity
-          activeOpacity={0.93}
-          onPress={() => setFlipped(!flipped)}
-          style={styles.cardContainer}
-        >
-          <View style={[styles.idCard, flipped && styles.idCardBack]}>
-            <View style={styles.cardAura} />
-            <View style={styles.cardTopEdge} />
-
-            {!flipped ? (
-              /* FRONT SIDE */
-              <>
-                <View style={styles.cardHeader}>
-                  <View>
-                    <View style={styles.univRow}>
-                      <View style={styles.greenDot} />
-                      <Text style={styles.univName}>ASTANA IT UNIVERSITY</Text>
+              {!flipped ? (
+                <>
+                  <View style={styles.cardTopRow}>
+                    <View style={styles.univGroup}>
+                      <View style={styles.emeraldDot} />
+                      <View>
+                        <Text style={styles.univName}>ASTANA IT UNIVERSITY</Text>
+                        <Text style={styles.cardType}>STUDENT IDENTITY PASS</Text>
+                      </View>
                     </View>
-                    <Text style={styles.cardType}>STUDENT IDENTITY & FREEDOM PASS</Text>
-                  </View>
-                  <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>АКТИВЕН ✓</Text>
-                  </View>
-                </View>
-
-                <View style={styles.studentInfoRow}>
-                  <View style={styles.photoContainer}>
-                    <View style={styles.photoFrame}>
-                      <Text style={styles.photoPlaceholder}>🎓</Text>
-                    </View>
-                    <View style={styles.grantBadge}>
-                      <Text style={styles.grantText}>ГРАНТ</Text>
+                    <View style={styles.activeBadge}>
+                      <Text style={styles.activeBadgeText}>Активен</Text>
                     </View>
                   </View>
 
-                  <View style={styles.studentDetails}>
-                    <Text style={styles.studentName}>{student.fullName}</Text>
-                    <View style={styles.groupBadge}>
-                      <Text style={styles.groupBadgeText}>ГРУППА {student.group}</Text>
+                  <View style={styles.profileSection}>
+                    <View style={styles.monogramWrap}>
+                      <View style={styles.monogramCircle}>
+                        <Text style={styles.monogramText}>{initials}</Text>
+                      </View>
+                      <View style={styles.grantBadge}>
+                        <Text style={styles.grantBadgeText}>ГРАНТ</Text>
+                      </View>
                     </View>
-                    <Text style={styles.studentSpecialty}>{student.major}</Text>
-                    <Text style={styles.studentFaculty}>{student.faculty}</Text>
+
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text style={styles.studentName}>{student.fullName}</Text>
+                      <View style={styles.groupBadge}>
+                        <Text style={styles.groupBadgeText}>{student.group}</Text>
+                      </View>
+                      <Text style={styles.studentMajor}>{student.major}</Text>
+                      <Text style={styles.studentFaculty}>{student.faculty}</Text>
+                    </View>
                   </View>
+
+                  <View style={styles.chipRow}>
+                    <EmvChipSvg />
+                    <View style={styles.turnstileRow}>
+                      <View style={{ transform: [{ rotate: '90deg' }] }}>
+                        <Wifi size={14} color={COLORS.textSecondary} strokeWidth={1.75} />
+                      </View>
+                      <Text style={styles.turnstileText}>NFC Campus Access</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.cardFooter}>
+                    <View>
+                      <Text style={styles.footerLabel}>STUDENT ID</Text>
+                      <Text style={styles.footerValMono}>{student.studentId}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={styles.footerLabel}>ОБУЧЕНИЕ</Text>
+                      <Text style={styles.footerVal}>{student.course} курс · Бакалавриат</Text>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.backWrap}>
+                  <View style={styles.magStrip} />
+                  <View style={styles.qrCenter}>
+                    <RealQrSvg size={102} seed={student.studentId} />
+                    <View style={styles.barcodeUnder}>
+                      <RealBarcodeSvg width={180} height={24} value={student.studentId} />
+                      <Text style={styles.barcodeId}>{student.studentId}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.legalNote}>
+                    Документ заверен ЭЦП и верифицирован через eGov Mobile.
+                  </Text>
                 </View>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
 
-                <View style={styles.chipRow}>
-                  <View style={styles.goldChip}>
-                    <View style={styles.chipGridHorizontal} />
-                    <View style={styles.chipGridVertical} />
-                    <View style={styles.chipCenter} />
-                  </View>
-                  <View style={styles.turnstileSignal}>
-                    <Text style={styles.turnstileSignalText}>📶 NFC Turnstile Ready</Text>
-                  </View>
-                </View>
-
-                <View style={styles.cardFooter}>
-                  <View>
-                    <Text style={styles.footerLabel}>STUDENT ID / BARCODE</Text>
-                    <Text style={styles.footerValue}>{student.studentId}</Text>
-                  </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Text style={styles.footerLabel}>КУРС ОБУЧЕНИЯ</Text>
-                    <Text style={styles.footerValue}>{student.course} Курс (Бакалавриат)</Text>
-                  </View>
-                </View>
-              </>
-            ) : (
-              /* BACK SIDE */
-              <>
-                <View style={styles.magStrip} />
-                <View style={styles.backContent}>
-                  <Text style={styles.qrTitle}>Динамический QR-код турникета</Text>
-                  <View style={styles.qrBox}>
-                    <Text style={styles.qrMock}>⬛⬜⬛⬛⬛⬜⬛{"\n"}⬜⬛⬜⬛⬜⬛⬜{"\n"}⬛⬛⬛⬛⬛⬛⬛</Text>
-                  </View>
-                  <Text style={styles.barcodeNum}>{student.studentId}</Text>
-                  <Text style={styles.qrExpiry}>Обновление через 45 сек • Защита от скриншотов</Text>
-
-                  <View style={styles.egovNotice}>
-                    <Text style={styles.egovNoticeText}>
-                      🛡 Документ заверен ЭЦП и приравнен к оригиналу удостоверения студента в соответствии с Законом РК «Об электронном документе».
-                    </Text>
-                  </View>
-                </View>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
-
-        <Text style={styles.tapHint}>Нажмите на карту для разворота (Front/Back)</Text>
-
-        {/* Freedom Banking Details & eGov Info */}
-        <View style={styles.detailsCard}>
-          <Text style={styles.detailsSectionTitle}>Сведения об обучении и карте</Text>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailKey}>Форма обучения</Text>
-            <Text style={styles.detailVal}>Очная (Государственный грант)</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailKey}>Академический статус</Text>
-            <Text style={[styles.detailVal, { color: "#00D174" }]}>
-              Без академических задолженностей ✓
+          <TouchableOpacity
+            style={styles.flipHintBtn}
+            onPress={() => setFlipped(!flipped)}
+            activeOpacity={0.75}
+          >
+            <RotateCw size={13} color={COLORS.textTertiary} strokeWidth={1.75} />
+            <Text style={styles.flipHintText}>
+              {flipped ? 'Показать лицевую сторону' : 'Перевернуть для QR-кода'}
             </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailKey}>Банковский счет IBAN</Text>
-            <Text style={styles.detailVal}>KZ448560000000000000</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailKey}>Ежемесячная стипендия</Text>
-            <Text style={[styles.detailVal, { color: "#00D174" }]}>
-              +{student.cardDetails.scholarshipAmount.toLocaleString("ru-RU")} ₸
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailKey}>Срок действия</Text>
-            <Text style={styles.detailVal}>до 30.06.2027</Text>
-          </View>
-        </View>
-
-        {/* Action Button */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionBtnPrimary} onPress={handleShare}>
-            <Text style={styles.actionBtnPrimaryText}>Поделиться QR (eGov Mobile)</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+
+        {/* Right: Structured Details Table & Actions */}
+        <View style={[styles.rightColumn, isDesktop && { flex: 1 }]}>
+          <View style={styles.detailsCard}>
+            <Text style={styles.detailsTitle}>Сведения о студенте</Text>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailKey}>Форма обучения</Text>
+              <Text style={styles.detailVal}>Очная (Гос. грант)</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailKey}>Академический статус</Text>
+              <Text style={[styles.detailVal, { color: COLORS.accentBright }]}>
+                Без задолженностей
+              </Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailKey}>ИИН</Text>
+              <Text style={styles.detailValMono}>{student.iin}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailKey}>Счёт IBAN (Freedom)</Text>
+              <Text style={styles.detailValMono}>KZ448560000000000000</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailKey}>Стипендия</Text>
+              <Text style={[styles.detailValMono, { color: COLORS.accentBright }]}>
+                +{student.cardDetails.scholarshipAmount.toLocaleString('ru-RU')} ₸
+              </Text>
+            </View>
+            <View style={[styles.detailRow, { borderBottomWidth: 0, paddingBottom: 2 }]}>
+              <Text style={styles.detailKey}>Действителен до</Text>
+              <Text style={styles.detailValMono}>30.06.2027</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={handleShare}
+            activeOpacity={0.85}
+          >
+            <Share2 size={16} color={COLORS.textInverse} strokeWidth={2} />
+            <Text style={styles.primaryBtnText}>Поделиться QR (eGov Mobile)</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A0F",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "#121A24",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800",
-  },
   egovPill: {
-    backgroundColor: "rgba(0, 209, 116, 0.15)",
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.accentSoft,
     borderWidth: 1,
-    borderColor: "#00D174",
+    borderColor: COLORS.borderAccent,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
+    paddingVertical: 6,
+    borderRadius: RADIUS.pill,
   },
-  egovText: {
-    color: "#00D174",
+  egovPillText: {
+    color: COLORS.accentBright,
     fontSize: 11,
-    fontWeight: "800",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  content: {
-    padding: 18,
-    alignItems: "center",
+  layoutGrid: {
+    gap: 20,
   },
-  subtitle: {
-    color: "#94A3B8",
-    fontSize: 12,
-    textAlign: "center",
-    marginBottom: 20,
-    lineHeight: 18,
-  },
-  cardContainer: {
-    width: "100%",
+  layoutGridDesktop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   idCard: {
-    backgroundColor: "#0D131B",
-    borderRadius: 24,
+    borderRadius: RADIUS.xl,
     padding: 22,
-    borderWidth: 1.5,
-    borderColor: "rgba(0, 209, 116, 0.4)",
-    minHeight: 250,
-    justifyContent: "space-between",
-    shadowColor: "#00D174",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 10,
-    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    minHeight: 266,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
   },
-  idCardBack: {
-    backgroundColor: "#090E15",
-    borderColor: "rgba(255,255,255,0.2)",
-    padding: 16,
+  cardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
-  cardAura: {
-    position: "absolute",
-    right: -60,
-    top: -60,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "rgba(0, 209, 116, 0.12)",
+  univGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  cardTopEdge: {
-    position: "absolute",
-    top: 0,
-    left: "20%",
-    right: "20%",
-    height: 1,
-    backgroundColor: "rgba(0, 209, 116, 0.6)",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  univRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  greenDot: {
+  emeraldDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#00D174",
+    backgroundColor: COLORS.accent,
   },
   univName: {
+    color: COLORS.textPrimary,
     fontSize: 12,
-    fontWeight: "900",
-    color: "#FFFFFF",
+    fontWeight: '700',
     letterSpacing: 1,
+    fontFamily: FONT_FAMILY.sans,
   },
   cardType: {
-    fontSize: 9,
-    fontWeight: "700",
-    color: "#00D174",
-    marginTop: 2,
-    letterSpacing: 0.5,
+    color: COLORS.textTertiary,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    marginTop: 1,
+    fontFamily: FONT_FAMILY.sans,
   },
-  statusBadge: {
-    backgroundColor: "rgba(0, 209, 116, 0.15)",
+  activeBadge: {
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderAccent,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "rgba(0, 209, 116, 0.3)",
+    borderRadius: RADIUS.pill,
   },
-  statusText: {
-    color: "#00D174",
-    fontSize: 9,
-    fontWeight: "900",
+  activeBadgeText: {
+    color: COLORS.accentBright,
+    fontSize: 10,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  studentInfoRow: {
-    flexDirection: "row",
-    alignItems: "center",
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 16,
-    marginVertical: 14,
+    marginVertical: 18,
   },
-  photoContainer: {
-    alignItems: "center",
+  monogramWrap: {
+    alignItems: 'center',
   },
-  photoFrame: {
-    width: 66,
-    height: 80,
-    backgroundColor: "#121A24",
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "rgba(0, 209, 116, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
+  monogramCircle: {
+    width: 64,
+    height: 76,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.borderStrong,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  photoPlaceholder: {
-    fontSize: 32,
+  monogramText: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    fontFamily: FONT_FAMILY.sans,
   },
   grantBadge: {
-    backgroundColor: "#00D174",
-    paddingHorizontal: 6,
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 4,
-    marginTop: -8,
+    marginTop: -9,
   },
-  grantText: {
-    color: "#070A0F",
-    fontSize: 8,
-    fontWeight: "900",
-  },
-  studentDetails: {
-    flex: 1,
+  grantBadgeText: {
+    color: COLORS.textInverse,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    fontFamily: FONT_FAMILY.sans,
   },
   studentName: {
+    color: COLORS.textPrimary,
     fontSize: 17,
-    fontWeight: "900",
-    color: "#FFFFFF",
-    marginBottom: 4,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    fontFamily: FONT_FAMILY.sans,
   },
   groupBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(0, 209, 116, 0.15)",
-    paddingHorizontal: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 5,
-    marginBottom: 4,
   },
   groupBadgeText: {
+    color: COLORS.accentBright,
     fontSize: 11,
-    fontWeight: "800",
-    color: "#00D174",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.mono,
   },
-  studentSpecialty: {
+  studentMajor: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#CBD5E1",
-    fontWeight: "600",
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
   },
   studentFaculty: {
-    fontSize: 10,
-    color: "#64748B",
-    marginTop: 2,
+    color: COLORS.textTertiary,
+    fontSize: 11,
+    fontFamily: FONT_FAMILY.sans,
   },
   chipRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  goldChip: {
-    width: 42,
-    height: 30,
-    borderRadius: 6,
-    backgroundColor: "#E5A83B",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.3)",
-    overflow: "hidden",
-    justifyContent: "center",
-    alignItems: "center",
+  turnstileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  chipGridHorizontal: {
-    position: "absolute",
-    width: "100%",
-    height: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
-  chipGridVertical: {
-    position: "absolute",
-    width: 1,
-    height: "100%",
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
-  chipCenter: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
-  turnstileSignal: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  turnstileSignalText: {
-    color: "#CBD5E1",
+  turnstileText: {
+    color: COLORS.textSecondary,
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
   },
   cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.08)",
-    paddingTop: 10,
+    borderTopColor: COLORS.border,
+    paddingTop: 12,
+    marginTop: 14,
   },
   footerLabel: {
-    fontSize: 8,
-    color: "#64748B",
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    color: COLORS.textTertiary,
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    fontFamily: FONT_FAMILY.sans,
   },
-  footerValue: {
+  footerValMono: {
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 2,
+    fontFamily: FONT_FAMILY.mono,
+  },
+  footerVal: {
+    color: COLORS.textPrimary,
     fontSize: 12,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    marginTop: 1,
+    fontWeight: '600',
+    marginTop: 2,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  backWrap: {
+    flex: 1,
+    justifyContent: 'space-between',
+    gap: 12,
   },
   magStrip: {
-    width: "115%",
-    marginLeft: "-7.5%",
-    height: 38,
-    backgroundColor: "#000000",
-    marginBottom: 12,
+    height: 36,
+    backgroundColor: '#040507',
+    marginHorizontal: -22,
+    marginTop: -4,
   },
-  backContent: {
-    alignItems: "center",
+  qrCenter: {
+    alignItems: 'center',
+    gap: 12,
   },
-  qrTitle: {
-    fontSize: 12,
-    color: "#94A3B8",
-    fontWeight: "700",
-    marginBottom: 8,
+  barcodeUnder: {
+    alignItems: 'center',
+    gap: 4,
   },
-  qrBox: {
-    backgroundColor: "#FFFFFF",
-    padding: 12,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  qrMock: {
-    fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
-    fontSize: 16,
-    lineHeight: 18,
-    color: "#000000",
-  },
-  barcodeNum: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "800",
-    marginTop: 8,
+  barcodeId: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontFamily: FONT_FAMILY.mono,
     letterSpacing: 2,
   },
-  qrExpiry: {
-    color: "#64748B",
+  legalNote: {
+    color: COLORS.textTertiary,
     fontSize: 10,
-    marginTop: 2,
+    textAlign: 'center',
+    fontFamily: FONT_FAMILY.sans,
   },
-  egovNotice: {
+  flipHintBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     marginTop: 12,
-    backgroundColor: "rgba(0, 209, 116, 0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(0, 209, 116, 0.2)",
-    padding: 8,
-    borderRadius: 10,
+    paddingVertical: 6,
   },
-  egovNoticeText: {
-    color: "#00D174",
-    fontSize: 10,
-    textAlign: "center",
-    lineHeight: 14,
+  flipHintText: {
+    color: COLORS.textTertiary,
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
   },
-  tapHint: {
-    color: "#64748B",
-    fontSize: 11,
-    marginTop: 12,
-    marginBottom: 20,
+
+  /* Right Column */
+  rightColumn: {
+    gap: 16,
   },
   detailsCard: {
-    width: "100%",
-    backgroundColor: "#121A24",
-    borderRadius: 20,
-    padding: 18,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: COLORS.border,
+    padding: 18,
   },
-  detailsSectionTitle: {
+  detailsTitle: {
+    color: COLORS.textPrimary,
     fontSize: 14,
-    fontWeight: "800",
-    color: "#FFFFFF",
+    fontWeight: '600',
     marginBottom: 12,
+    fontFamily: FONT_FAMILY.sans,
   },
   detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 11,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.04)",
+    borderBottomColor: COLORS.border,
+    gap: 12,
   },
   detailKey: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#94A3B8",
+    fontFamily: FONT_FAMILY.sans,
   },
   detailVal: {
+    color: COLORS.textPrimary,
     fontSize: 12,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+    textAlign: 'right',
   },
-  actionRow: {
-    width: "100%",
-    marginTop: 20,
+  detailValMono: {
+    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.mono,
   },
-  actionBtnPrimary: {
-    backgroundColor: "#00D174",
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    shadowColor: "#00D174",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.accent,
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
   },
-  actionBtnPrimaryText: {
-    color: "#070A0F",
+  primaryBtnText: {
+    color: COLORS.textInverse,
     fontSize: 14,
-    fontWeight: "900",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
 });

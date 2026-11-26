@@ -1,76 +1,78 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
   Alert,
-} from "react-native";
-import { Classroom } from "../types";
+} from 'react-native';
+import { useResponsive } from '../hooks/useResponsive';
+import { Users, Radio, Building2, CheckCircle2 } from 'lucide-react-native';
+import { Classroom, StudentProfile } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
 
 interface TeacherControlScreenProps {
+  student: StudentProfile;
   currentClassroom: Classroom;
   availableClassrooms: Classroom[];
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onRelocateClassroom: (newRoom: Classroom) => void;
   onBack: () => void;
 }
 
 export const TeacherControlScreen: React.FC<TeacherControlScreenProps> = ({
+  student,
   currentClassroom,
   availableClassrooms,
+  currentPage,
+  onNavigate,
+  onLogout,
   onRelocateClassroom,
   onBack,
 }) => {
+  const { isDesktop } = useResponsive();
   const [selectedRoomId, setSelectedRoomId] = useState(currentClassroom.id);
 
-  const handleApplyRelocation = () => {
-    const targetRoom = availableClassrooms.find((r) => r.id === selectedRoomId);
-    if (!targetRoom) return;
-
-    onRelocateClassroom(targetRoom);
+  const handleApply = () => {
+    const target = availableClassrooms.find((r) => r.id === selectedRoomId);
+    if (!target) return;
+    onRelocateClassroom(target);
     Alert.alert(
-      "Аудитория перенесена! 📢",
-      `Пара "${targetRoom.currentSubject}" перенесена в кабинет ${targetRoom.number} (${targetRoom.floor} этаж, ${targetRoom.building}). Всем студентам потока отправлен Push-нотификация и обновлен радар.`
+      'Аудитория обновлена',
+      `Занятие перенесено в аудиторию ${target.number} (${target.building}). Радар геофенсинга студентов синхронизирован.`
     );
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Панель преподавателя</Text>
-        <View style={styles.headerSpacer} />
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Панель преподавателя"
+      subtitle="Оперативный перенос аудитории и синхронизация радара"
+      onBack={onBack}
+    >
+      {/* Current Active Location Card */}
+      <View style={styles.currentCard}>
+        <View style={styles.currentTopRow}>
+          <View style={styles.activePill}>
+            <View style={styles.liveDot} />
+            <Text style={styles.activePillText}>Текущая локация</Text>
+          </View>
+          <Text style={styles.currentBuilding}>{currentClassroom.building}</Text>
+        </View>
+
+        <Text style={styles.currentNum}>Аудитория {currentClassroom.number}</Text>
+        <Text style={styles.currentSubject}>{currentClassroom.currentSubject}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.noticeCard}>
-          <Text style={styles.noticeBadge}>TEACHER COCKPIT • AITU CAMPUS</Text>
-          <Text style={styles.noticeTitle}>Оперативное управление парой</Text>
-          <Text style={styles.noticeDesc}>
-            Если аудитория занята или проводятся технические работы, преподаватель может в один клик перенести лекцию в свободный кабинет. Студенческий радар синхронизируется моментально.
-          </Text>
-        </View>
+      <Text style={styles.sectionTitle}>Доступные аудитории</Text>
 
-        <Text style={styles.sectionTitle}>Текущая аудитория</Text>
-        <View style={styles.currentCard}>
-          <View style={styles.currentHeader}>
-            <Text style={styles.currentNum}>Кабинет {currentClassroom.number}</Text>
-            <View style={styles.activePill}>
-              <Text style={styles.activePillText}>АКТИВНАЯ ЛОКАЦИЯ</Text>
-            </View>
-          </View>
-          <Text style={styles.currentSubject}>{currentClassroom.currentSubject}</Text>
-          <Text style={styles.currentMeta}>
-            Вместимость: {currentClassroom.capacity} мест • BLE Радар: {currentClassroom.beaconRange}м • {currentClassroom.building}
-          </Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>Выберите аудиторию для переноса</Text>
-
+      <View style={styles.roomsGrid}>
         {availableClassrooms.map((room) => {
           const isSelected = selectedRoomId === room.id;
           const isCurrent = currentClassroom.id === room.id;
@@ -80,217 +82,209 @@ export const TeacherControlScreen: React.FC<TeacherControlScreenProps> = ({
               key={room.id}
               style={[
                 styles.roomCard,
+                isDesktop && styles.roomCardDesktop,
                 isSelected && styles.roomCardSelected,
               ]}
               onPress={() => setSelectedRoomId(room.id)}
+              activeOpacity={0.8}
             >
-              <View style={styles.roomHeader}>
+              <View style={styles.roomTop}>
                 <View>
-                  <Text style={styles.roomCardNum}>Аудитория {room.number}</Text>
-                  <Text style={styles.roomCardBuilding}>
-                    {room.building}, {room.floor} этаж
-                  </Text>
+                  <Text style={styles.roomNum}>Ауд. {room.number}</Text>
+                  <View style={styles.buildingRow}>
+                    <Building2 size={12} color={COLORS.textTertiary} strokeWidth={1.75} />
+                    <Text style={styles.roomBuilding}>
+                      {room.building}, {room.floor} эт.
+                    </Text>
+                  </View>
                 </View>
+
                 <View
                   style={[
-                    styles.roomBadge,
-                    { backgroundColor: room.isAvailable ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)" },
+                    styles.statusBadge,
+                    {
+                      backgroundColor: room.isAvailable ? COLORS.accentSoft : COLORS.dangerSoft,
+                    },
                   ]}
                 >
                   <Text
-                    style={{
-                      color: room.isAvailable ? "#10B981" : "#EF4444",
-                      fontSize: 11,
-                      fontWeight: "700",
-                    }}
+                    style={[
+                      styles.statusBadgeText,
+                      { color: room.isAvailable ? COLORS.accentBright : COLORS.danger },
+                    ]}
                   >
-                    {isCurrent ? "Текущая" : room.isAvailable ? "Свободна ✓" : "Занята ✕"}
+                    {isCurrent ? 'Текущая' : room.isAvailable ? 'Свободна' : 'Занята'}
                   </Text>
                 </View>
               </View>
 
               <View style={styles.roomSpecs}>
-                <Text style={styles.specText}>👥 Вместимость: {room.capacity} чел.</Text>
-                <Text style={styles.specText}>📡 Радиус радара: {room.beaconRange}м</Text>
+                <View style={styles.specItem}>
+                  <Users size={13} color={COLORS.textTertiary} strokeWidth={1.75} />
+                  <Text style={styles.specText}>{room.capacity} мест</Text>
+                </View>
+                <View style={styles.specItem}>
+                  <Radio size={13} color={COLORS.textTertiary} strokeWidth={1.75} />
+                  <Text style={styles.specText}>Радиус {room.beaconRange} м</Text>
+                </View>
+                {isSelected && <CheckCircle2 size={15} color={COLORS.accent} strokeWidth={2} />}
               </View>
             </TouchableOpacity>
           );
         })}
+      </View>
 
-        <TouchableOpacity
-          style={styles.applyBtn}
-          onPress={handleApplyRelocation}
-        >
-          <Text style={styles.applyBtnText}>Подтвердить перенос аудитории</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+      <TouchableOpacity style={styles.applyBtn} onPress={handleApply} activeOpacity={0.85}>
+        <Text style={styles.applyBtnText}>Подтвердить перенос аудитории</Text>
+      </TouchableOpacity>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A11",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  noticeCard: {
-    backgroundColor: "rgba(168, 85, 247, 0.1)",
-    borderRadius: 18,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: "rgba(168, 85, 247, 0.3)",
-    marginBottom: 20,
-  },
-  noticeBadge: {
-    color: "#C084FC",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
-  noticeTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800",
-    marginBottom: 4,
-  },
-  noticeDesc: {
-    color: "#CBD5E1",
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  sectionTitle: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
   currentCard: {
-    backgroundColor: "#111827",
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "rgba(0, 229, 255, 0.3)",
-    marginBottom: 20,
+    borderColor: COLORS.border,
+    padding: 20,
+    marginBottom: 22,
+    gap: 6,
   },
-  currentHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  currentNum: {
-    color: "#00E5FF",
-    fontSize: 18,
-    fontWeight: "800",
+  currentTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   activePill: {
-    backgroundColor: "rgba(0, 229, 255, 0.15)",
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.accentSoft,
+    paddingHorizontal: 9,
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
+    borderRadius: RADIUS.pill,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.accent,
   },
   activePillText: {
-    color: "#00E5FF",
-    fontSize: 10,
-    fontWeight: "800",
+    color: COLORS.accentBright,
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  currentBuilding: {
+    color: COLORS.textTertiary,
+    fontSize: 12,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  currentNum: {
+    color: COLORS.textPrimary,
+    fontSize: 20,
+    fontWeight: '700',
+    fontFamily: FONT_FAMILY.sans,
   },
   currentSubject: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 4,
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontFamily: FONT_FAMILY.sans,
   },
-  currentMeta: {
-    color: "#94A3B8",
-    fontSize: 12,
+  sectionTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 12,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  roomsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+    marginBottom: 20,
   },
   roomCard: {
-    backgroundColor: "#111827",
-    borderRadius: 16,
+    width: '100%',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     padding: 16,
-    borderWidth: 1.5,
-    borderColor: "rgba(255,255,255,0.06)",
-    marginBottom: 12,
+    gap: 14,
+  },
+  roomCardDesktop: {
+    width: '49%',
   },
   roomCardSelected: {
-    borderColor: "#A855F7",
-    backgroundColor: "rgba(168, 85, 247, 0.08)",
+    borderColor: COLORS.borderAccent,
+    backgroundColor: COLORS.surfaceElevated,
   },
-  roomHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 10,
+  roomTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 10,
   },
-  roomCardNum: {
-    color: "#FFFFFF",
+  roomNum: {
+    color: COLORS.textPrimary,
     fontSize: 16,
-    fontWeight: "700",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  roomCardBuilding: {
-    color: "#94A3B8",
+  buildingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 3,
+  },
+  roomBuilding: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    marginTop: 2,
+    fontFamily: FONT_FAMILY.sans,
   },
-  roomBadge: {
-    paddingVertical: 3,
+  statusBadge: {
     paddingHorizontal: 8,
-    borderRadius: 6,
+    paddingVertical: 3,
+    borderRadius: RADIUS.pill,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
   roomSpecs: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.04)",
-    paddingTop: 8,
+    borderTopColor: COLORS.border,
+    paddingTop: 10,
+  },
+  specItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   specText: {
-    color: "#64748B",
+    color: COLORS.textTertiary,
     fontSize: 11,
+    fontFamily: FONT_FAMILY.sans,
   },
   applyBtn: {
-    backgroundColor: "#A855F7",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 10,
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.md,
+    paddingVertical: 15,
+    alignItems: 'center',
   },
   applyBtnText: {
-    color: "#FFFFFF",
+    color: COLORS.textInverse,
     fontSize: 14,
-    fontWeight: "800",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
 });

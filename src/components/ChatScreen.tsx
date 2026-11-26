@@ -1,213 +1,239 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   TextInput,
   KeyboardAvoidingView,
   Platform,
-} from "react-native";
-import { ChatMessage } from "../types";
+} from 'react-native';
+import { Send } from 'lucide-react-native';
+import { ChatMessage, StudentProfile } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
 
 interface ChatScreenProps {
+  student: StudentProfile;
   initialMessages: ChatMessage[];
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onBack: () => void;
 }
 
-export const ChatScreen: React.FC<ChatScreenProps> = ({ initialMessages, onBack }) => {
+export const ChatScreen: React.FC<ChatScreenProps> = ({
+  student,
+  initialMessages,
+  currentPage,
+  onNavigate,
+  onLogout,
+  onBack,
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  const [inputText, setInputText] = useState("");
+  const [inputText, setInputText] = useState('');
 
   const handleSend = () => {
     if (!inputText.trim()) return;
 
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
-      sender: "user",
+      sender: 'user',
       text: inputText.trim(),
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    setInputText("");
+    setInputText('');
 
-    // Advisor automated response
     setTimeout(() => {
       const botMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
-        sender: "advisor",
-        text: "Принято в обработку. Я проверю ваш индивидуальный учебный план (ИУП) и свяжусь с деканатом. Ответ поступит в этот чат.",
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        sender: 'advisor',
+        text: 'Принято. Проверю ваш индивидуальный учебный план и отвечу после согласования с деканатом.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setMessages((prev) => [...prev, botMsg]);
-    }, 1000);
+    }, 900);
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <View style={styles.advisorInfo}>
-          <Text style={styles.advisorName}>Академический Эдвайзер</Text>
-          <Text style={styles.advisorStatus}>🟢 Онлайн • Деканат IT</Text>
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
+  const onlineBadge = (
+    <View style={styles.onlinePill}>
+      <View style={styles.onlineDot} />
+      <Text style={styles.onlineText}>Деканат онлайн</Text>
+    </View>
+  );
 
+  return (
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Академический эдвайзер"
+      subtitle="Даулетова А.Б. · Деканат Software Engineering"
+      onBack={onBack}
+      rightAction={onlineBadge}
+      noScroll
+    >
       <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.chatPanel}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          style={styles.messagesContainer}
+          style={styles.messagesList}
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
         >
           {messages.map((m) => {
-            const isUser = m.sender === "user";
+            const isUser = m.sender === 'user' || m.sender === 'student';
             return (
               <View
                 key={m.id}
                 style={[
-                  styles.messageBubble,
+                  styles.bubble,
                   isUser ? styles.userBubble : styles.advisorBubble,
                 ]}
               >
-                <Text style={styles.messageText}>{m.text}</Text>
-                <Text style={styles.messageTime}>{m.timestamp}</Text>
+                <Text
+                  style={[
+                    styles.bubbleText,
+                    { color: isUser ? COLORS.textInverse : COLORS.textPrimary },
+                  ]}
+                >
+                  {m.text}
+                </Text>
+                <Text
+                  style={[
+                    styles.bubbleTime,
+                    {
+                      color: isUser
+                        ? 'rgba(7, 10, 13, 0.65)'
+                        : COLORS.textTertiary,
+                    },
+                  ]}
+                >
+                  {m.timestamp}
+                </Text>
               </View>
             );
           })}
         </ScrollView>
 
-        {/* Input Bar */}
-        <View style={styles.inputArea}>
+        <View style={styles.composerRow}>
           <TextInput
             style={styles.input}
-            placeholder="Напишите обращение эдвайзеру..."
-            placeholderTextColor="#64748B"
+            placeholder="Напишите сообщение эдвайзеру..."
+            placeholderTextColor={COLORS.textTertiary}
             value={inputText}
             onChangeText={setInputText}
+            onSubmitEditing={handleSend}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-            <Text style={styles.sendButtonText}>➔</Text>
+          <TouchableOpacity style={styles.sendBtn} onPress={handleSend} activeOpacity={0.85}>
+            <Send size={16} color={COLORS.textInverse} strokeWidth={2} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A11",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
-    paddingVertical: 6,
+  onlinePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderAccent,
     paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
+    paddingVertical: 5,
+    borderRadius: RADIUS.pill,
   },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontWeight: "600",
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.accent,
   },
-  advisorInfo: {
-    alignItems: "center",
-  },
-  advisorName: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  advisorStatus: {
-    color: "#10B981",
+  onlineText: {
+    color: COLORS.accentBright,
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  headerSpacer: {
-    width: 50,
-  },
-  container: {
+  chatPanel: {
     flex: 1,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
   },
-  messagesContainer: {
+  messagesList: {
     flex: 1,
   },
   messagesContent: {
-    padding: 16,
+    padding: 18,
     gap: 12,
   },
-  messageBubble: {
-    maxWidth: "80%",
-    padding: 14,
-    borderRadius: 16,
+  bubble: {
+    maxWidth: '78%',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: RADIUS.lg,
   },
   userBubble: {
-    alignSelf: "flex-end",
-    backgroundColor: "#00E5FF",
+    alignSelf: 'flex-end',
+    backgroundColor: COLORS.accent,
     borderBottomRightRadius: 4,
   },
   advisorBubble: {
-    alignSelf: "flex-start",
-    backgroundColor: "#1E293B",
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     borderBottomLeftRadius: 4,
   },
-  messageText: {
+  bubbleText: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#0F172A",
+    fontFamily: FONT_FAMILY.sans,
   },
-  messageTime: {
+  bubbleTime: {
     fontSize: 10,
     marginTop: 4,
-    alignSelf: "flex-end",
-    color: "rgba(15, 23, 42, 0.6)",
+    alignSelf: 'flex-end',
+    fontFamily: FONT_FAMILY.mono,
   },
-  inputArea: {
-    flexDirection: "row",
-    padding: 14,
-    backgroundColor: "#0F172A",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
+  composerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
+    padding: 12,
+    backgroundColor: COLORS.rail,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
   input: {
     flex: 1,
-    backgroundColor: "#1E293B",
-    borderRadius: 12,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    color: "#FFFFFF",
+    paddingVertical: 11,
+    color: COLORS.textPrimary,
     fontSize: 14,
+    fontFamily: FONT_FAMILY.sans,
   },
-  sendButton: {
-    backgroundColor: "#00E5FF",
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  sendButtonText: {
-    color: "#050B14",
-    fontSize: 18,
-    fontWeight: "800",
+  sendBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

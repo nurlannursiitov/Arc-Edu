@@ -9,8 +9,12 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { User, Lock, Check, ArrowRight, ScanFace } from 'lucide-react-native';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { BrandMark } from './ui/BrandMark';
 
 interface Props {
   onLoginSuccess: () => void;
@@ -19,122 +23,126 @@ interface Props {
 
 export default function LoginScreen({ onLoginSuccess, onNavigateForgotPassword }: Props) {
   const [login, setLogin] = useState('230107042');
-  const [password, setPassword] = useState('••••••••');
+  const [password, setPassword] = useState('nurlan2026');
   const [rememberMe, setRememberMe] = useState(true);
 
   const handleLogin = () => {
     if (!login.trim()) {
-      Alert.alert('Ошибка', 'Введите логин студента или ID');
+      Alert.alert('Ошибка', 'Введите логин студента или Barcode ID');
       return;
     }
     onLoginSuccess();
   };
 
   const handleBiometricLogin = () => {
-    Alert.alert('Face ID / Биометрия', 'Авторизация по Face ID успешно пройдена!', [
-      { text: 'Продолжить', onPress: onLoginSuccess }
+    Alert.alert('Face ID', 'Биометрическая верификация успешно пройдена', [
+      { text: 'Продолжить', onPress: onLoginSuccess },
     ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
+      <LinearGradient
+        colors={['rgba(16, 185, 129, 0.08)', 'transparent']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.45 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.content}
+        style={styles.centerWrap}
       >
-        {/* Brand Header */}
-        <View style={styles.brandContainer}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoLetter}>Δ</Text>
-          </View>
-          <Text style={styles.title}>ARC EDU</Text>
-          <Text style={styles.subtitle}>Цифровая экосистема студента • AITU</Text>
-          <View style={styles.platonusPill}>
-            <Text style={styles.platonusPillText}>PLATONUS NEXTGEN EDITION</Text>
-          </View>
-        </View>
-
-        {/* Login Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardHeader}>Вход в личный кабинет</Text>
-          <Text style={styles.cardSub}>Используйте студенческий ID или корпоративную почту</Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Логин / Студенческий ID</Text>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>👤</Text>
-              <TextInput
-                style={styles.input}
-                value={login}
-                onChangeText={setLogin}
-                placeholder="Например, 230107042"
-                placeholderTextColor="#64748B"
-                autoCapitalize="none"
-              />
-            </View>
+        <View style={styles.authBox}>
+          {/* Minimal Brand Header */}
+          <View style={styles.brandHeader}>
+            <BrandMark size={44} />
+            <Text style={styles.title}>Arc Edu</Text>
+            <Text style={styles.subtitle}>Цифровой кампус Astana IT University</Text>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Пароль</Text>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputIcon}>🔒</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                placeholder="Введите пароль"
-                placeholderTextColor="#64748B"
-              />
-            </View>
-          </View>
+          {/* Clean Auth Card */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Вход в систему</Text>
+            <Text style={styles.cardSub}>Единая авторизация Platonus & Freedom ID</Text>
 
-          <View style={styles.optionsRow}>
-            <TouchableOpacity
-              style={styles.checkboxRow}
-              onPress={() => setRememberMe(!rememberMe)}
-            >
-              <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
-                {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Студенческий ID или Email</Text>
+              <View style={styles.inputRow}>
+                <User size={15} color={COLORS.textTertiary} strokeWidth={1.75} />
+                <TextInput
+                  style={styles.input}
+                  value={login}
+                  onChangeText={setLogin}
+                  placeholder="230107042"
+                  placeholderTextColor={COLORS.textTertiary}
+                  autoCapitalize="none"
+                />
               </View>
-              <Text style={styles.checkboxLabel}>Запомнить меня</Text>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Пароль</Text>
+              <View style={styles.inputRow}>
+                <Lock size={15} color={COLORS.textTertiary} strokeWidth={1.75} />
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry
+                  placeholder="Введите пароль"
+                  placeholderTextColor={COLORS.textTertiary}
+                />
+              </View>
+            </View>
+
+            <View style={styles.optionsRow}>
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() => setRememberMe(!rememberMe)}
+                activeOpacity={0.75}
+              >
+                <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+                  {rememberMe && <Check size={11} color={COLORS.textInverse} strokeWidth={3} />}
+                </View>
+                <Text style={styles.checkboxLabel}>Запомнить сессию</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={onNavigateForgotPassword} activeOpacity={0.75}>
+                <Text style={styles.forgotLink}>Восстановить доступ</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleLogin} activeOpacity={0.85}>
+              <Text style={styles.primaryBtnText}>Войти в аккаунт</Text>
+              <ArrowRight size={16} color={COLORS.textInverse} strokeWidth={2.2} />
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={onNavigateForgotPassword}>
-              <Text style={styles.forgotText}>Забыли пароль?</Text>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => {
+                setLogin('230107042');
+                setPassword('nurlan2026');
+                onLoginSuccess();
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.secondaryBtnText}>Демо-вход: Нурсиитов Нурлан</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.biometricRow}
+              onPress={handleBiometricLogin}
+              activeOpacity={0.75}
+            >
+              <ScanFace size={16} color={COLORS.textSecondary} strokeWidth={1.75} />
+              <Text style={styles.biometricText}>Войти через Face ID / Touch ID</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Sign In Button */}
-          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-            <Text style={styles.loginBtnText}>Войти в систему →</Text>
-          </TouchableOpacity>
-
-          {/* Quick Demo Fill Button */}
-          <TouchableOpacity
-            style={styles.demoFillBtn}
-            onPress={() => {
-              setLogin('230107042');
-              setPassword('nurlan2026');
-              onLoginSuccess();
-            }}
-          >
-            <Text style={styles.demoFillBtnText}>⚡ Быстрый вход (Нурсиитов Нурлан)</Text>
-          </TouchableOpacity>
-
-          {/* Biometric Face ID */}
-          <TouchableOpacity style={styles.biometricBtn} onPress={handleBiometricLogin}>
-            <Text style={styles.biometricIcon}>🪪</Text>
-            <Text style={styles.biometricText}>Войти с помощью Face ID / Touch ID</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Astana IT University • Департамент цифровизации
-          </Text>
+          <Text style={styles.footerText}>Astana IT University · Департамент цифровизации</Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -144,119 +152,90 @@ export default function LoginScreen({ onLoginSuccess, onNavigateForgotPassword }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#070B14',
+    backgroundColor: COLORS.bg,
   },
-  content: {
+  centerWrap: {
     flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  brandContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logoBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 16,
-    backgroundColor: '#0284C7',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1.5,
-    borderColor: '#38BDF8',
-    shadowColor: '#38BDF8',
-    shadowOpacity: 0.5,
-    shadowRadius: 16,
-    elevation: 8,
+    padding: 20,
   },
-  logoLetter: {
-    color: '#fff',
-    fontSize: 32,
-    fontWeight: '900',
+  authBox: {
+    width: '100%',
+    maxWidth: 420,
+    gap: 24,
+  },
+  brandHeader: {
+    alignItems: 'center',
+    gap: 8,
   },
   title: {
-    color: '#F8FAFC',
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: 2,
+    color: COLORS.textPrimary,
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    fontFamily: FONT_FAMILY.sans,
+    marginTop: 4,
   },
   subtitle: {
-    color: '#94A3B8',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  platonusPill: {
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.25)',
-  },
-  platonusPillText: {
-    color: '#38BDF8',
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontFamily: FONT_FAMILY.sans,
   },
   card: {
-    backgroundColor: '#0F172A',
-    borderRadius: 20,
-    padding: 22,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: '#1E293B',
-    shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 10,
+    borderColor: COLORS.border,
+    padding: 24,
   },
-  cardHeader: {
-    color: '#F8FAFC',
+  cardTitle: {
+    color: COLORS.textPrimary,
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    fontFamily: FONT_FAMILY.sans,
   },
   cardSub: {
-    color: '#64748B',
-    fontSize: 11,
-    marginTop: 4,
-    marginBottom: 18,
+    color: COLORS.textTertiary,
+    fontSize: 12,
+    marginTop: 3,
+    marginBottom: 20,
+    fontFamily: FONT_FAMILY.sans,
   },
-  inputGroup: {
+  fieldGroup: {
     marginBottom: 14,
   },
   label: {
-    color: '#CBD5E1',
-    fontSize: 11,
-    fontWeight: '700',
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
     marginBottom: 6,
+    fontFamily: FONT_FAMILY.sans,
   },
-  inputWrapper: {
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#070C16',
-    borderRadius: 10,
+    gap: 10,
+    backgroundColor: COLORS.bg,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: COLORS.border,
     paddingHorizontal: 12,
-  },
-  inputIcon: {
-    fontSize: 14,
-    marginRight: 8,
   },
   input: {
     flex: 1,
-    color: '#F8FAFC',
+    color: COLORS.textPrimary,
     paddingVertical: 12,
-    fontSize: 13,
+    fontSize: 14,
+    fontFamily: FONT_FAMILY.sans,
   },
   optionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 2,
-    marginBottom: 18,
+    marginTop: 4,
+    marginBottom: 20,
   },
   checkboxRow: {
     flexDirection: 'row',
@@ -264,83 +243,77 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
+    width: 17,
+    height: 17,
+    borderRadius: 5,
     borderWidth: 1.5,
-    borderColor: '#475569',
+    borderColor: COLORS.textTertiary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   checkboxActive: {
-    backgroundColor: '#0284C7',
-    borderColor: '#38BDF8',
-  },
-  checkmark: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '900',
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
   },
   checkboxLabel: {
-    color: '#94A3B8',
-    fontSize: 11,
-  },
-  forgotText: {
-    color: '#38BDF8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  loginBtn: {
-    backgroundColor: '#0284C7',
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: 'center',
-    shadowColor: '#0284C7',
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  loginBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  demoFillBtn: {
-    backgroundColor: '#131D30',
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: '#24324D',
-  },
-  demoFillBtnText: {
-    color: '#38BDF8',
+    color: COLORS.textSecondary,
     fontSize: 12,
-    fontWeight: '800',
+    fontFamily: FONT_FAMILY.sans,
   },
-  biometricBtn: {
+  forgotLink: {
+    color: COLORS.accentBright,
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 14,
-    paddingVertical: 8,
     gap: 8,
+    backgroundColor: COLORS.accent,
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
   },
-  biometricIcon: {
-    fontSize: 16,
+  primaryBtnText: {
+    color: COLORS.textInverse,
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  secondaryBtn: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  secondaryBtnText: {
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  biometricRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 6,
   },
   biometricText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 24,
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
   },
   footerText: {
-    color: '#475569',
-    fontSize: 10,
+    color: COLORS.textTertiary,
+    fontSize: 11,
+    textAlign: 'center',
+    fontFamily: FONT_FAMILY.sans,
   },
 });

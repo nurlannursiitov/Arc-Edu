@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-} from "react-native";
+  SafeAreaView,
+} from 'react-native';
+import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react-native';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
 
 interface ForgotPasswordProps {
   onBack: () => void;
@@ -16,12 +19,12 @@ interface ForgotPasswordProps {
 }
 
 export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onCodeSent }) => {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [isSent, setIsSent] = useState(false);
 
   const handleReset = () => {
     if (!email.trim()) {
-      Alert.alert("Ошибка", "Введите студенческий email или Barcode ID");
+      Alert.alert('Ошибка', 'Введите корпоративный email или 8-значный Barcode ID');
       return;
     }
     setIsSent(true);
@@ -29,172 +32,204 @@ export const ForgotPassword: React.FC<ForgotPasswordProps> = ({ onBack, onCodeSe
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      <View style={styles.card}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.centerWrap}
+      >
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.75}>
+            <ArrowLeft size={15} color={COLORS.textSecondary} strokeWidth={1.75} />
+            <Text style={styles.backText}>Назад ко входу</Text>
+          </TouchableOpacity>
 
-        <Text style={styles.badge}>Служба поддержки AITU ID</Text>
-        <Text style={styles.title}>Восстановление доступа</Text>
-        <Text style={styles.subtitle}>
-          Введите корпоративную почту (@astanait.edu.kz) или 8-значный Barcode ID для сброса пароля Platonus / Arc Edu
-        </Text>
-
-        {!isSent ? (
-          <View style={styles.form}>
-            <Text style={styles.label}>Корпоративный Email / ID</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="230103055@astanait.edu.kz"
-              placeholderTextColor="#64748B"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-
-            <TouchableOpacity style={styles.primaryButton} onPress={handleReset}>
-              <Text style={styles.primaryButtonText}>Отправить код подтверждения</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.successBox}>
-            <Text style={styles.successTitle}>✓ Код выслан на почту</Text>
-            <Text style={styles.successText}>
-              Проверьте входящие сообщения для <Text style={styles.highlight}>{email}</Text>. Введите полученный 6-значный OTP для сброса пароля.
-            </Text>
-            <TouchableOpacity style={styles.primaryButton} onPress={onBack}>
-              <Text style={styles.primaryButtonText}>Вернуться к авторизации</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <View style={styles.footerNote}>
-          <Text style={styles.footerText}>
-            Проблемы с корпоративной почтой? Обратитесь в HelpDesk (Каб. 214, IT-Support)
+          <Text style={styles.eyebrow}>СЛУЖБА ПОДДЕРЖКИ AITU ID</Text>
+          <Text style={styles.title}>Восстановление доступа</Text>
+          <Text style={styles.subtitle}>
+            Укажите корпоративную почту (@astanait.edu.kz) или студенческий Barcode ID для получения одноразового кода сброса пароля.
           </Text>
+
+          {!isSent ? (
+            <View style={styles.form}>
+              <View>
+                <Text style={styles.label}>Корпоративный Email / ID</Text>
+                <View style={styles.inputRow}>
+                  <Mail size={15} color={COLORS.textTertiary} strokeWidth={1.75} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="230107042@astanait.edu.kz"
+                    placeholderTextColor={COLORS.textTertiary}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.primaryBtn} onPress={handleReset} activeOpacity={0.85}>
+                <Text style={styles.primaryBtnText}>Отправить код подтверждения</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.successBox}>
+              <CheckCircle2 size={28} color={COLORS.accent} strokeWidth={1.75} />
+              <Text style={styles.successTitle}>Код отправлен на почту</Text>
+              <Text style={styles.successText}>
+                Проверьте входящие сообщения для{' '}
+                <Text style={{ color: COLORS.textPrimary, fontWeight: '600' }}>{email}</Text>.
+              </Text>
+              <TouchableOpacity style={[styles.primaryBtn, { width: '100%' }]} onPress={onBack}>
+                <Text style={styles.primaryBtnText}>Вернуться к авторизации</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Проблемы с доступом к почте? Обратитесь в IT HelpDesk (Каб. C1.214).
+            </Text>
+          </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B0F19",
-    justifyContent: "center",
-    padding: 24,
+    backgroundColor: COLORS.bg,
+  },
+  centerWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   card: {
-    backgroundColor: "#111827",
-    borderRadius: 24,
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
     padding: 24,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: COLORS.border,
   },
-  backButton: {
-    alignSelf: "flex-start",
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     marginBottom: 20,
   },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  badge: {
-    color: "#00E5FF",
+  backText: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  eyebrow: {
+    color: COLORS.accentBright,
+    fontSize: 10,
+    fontWeight: '700',
     letterSpacing: 1,
-    marginBottom: 8,
+    marginBottom: 6,
+    fontFamily: FONT_FAMILY.sans,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
+    fontSize: 22,
+    fontWeight: '600',
+    letterSpacing: -0.3,
     marginBottom: 8,
+    fontFamily: FONT_FAMILY.sans,
   },
   subtitle: {
-    fontSize: 14,
-    color: "#94A3B8",
-    lineHeight: 20,
-    marginBottom: 24,
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 22,
+    fontFamily: FONT_FAMILY.sans,
   },
   form: {
     gap: 16,
   },
   label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#CBD5E1",
-    marginBottom: -8,
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '500',
+    marginBottom: 6,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: COLORS.bg,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 12,
   },
   input: {
-    backgroundColor: "rgba(15, 23, 42, 0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
-    borderRadius: 14,
-    padding: 16,
-    color: "#FFFFFF",
-    fontSize: 15,
+    flex: 1,
+    color: COLORS.textPrimary,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontFamily: FONT_FAMILY.sans,
   },
-  primaryButton: {
-    backgroundColor: "#00E5FF",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginTop: 8,
+  primaryBtn: {
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.md,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
-  primaryButtonText: {
-    color: "#050B14",
-    fontSize: 15,
-    fontWeight: "700",
+  primaryBtnText: {
+    color: COLORS.textInverse,
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
   successBox: {
-    backgroundColor: "rgba(16, 185, 129, 0.1)",
+    backgroundColor: COLORS.accentSoft,
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
+    borderColor: COLORS.borderAccent,
+    borderRadius: RADIUS.lg,
     padding: 20,
-    borderRadius: 16,
-    alignItems: "center",
+    alignItems: 'center',
+    gap: 10,
   },
   successTitle: {
-    color: "#10B981",
+    color: COLORS.textPrimary,
     fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 8,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
   successText: {
-    color: "#94A3B8",
+    color: COLORS.textSecondary,
     fontSize: 13,
+    textAlign: 'center',
     lineHeight: 18,
-    textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 6,
+    fontFamily: FONT_FAMILY.sans,
   },
-  highlight: {
-    color: "#FFFFFF",
-    fontWeight: "600",
-  },
-  footerNote: {
-    marginTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.06)",
+  footer: {
+    marginTop: 22,
     paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
   },
   footerText: {
-    color: "#64748B",
-    fontSize: 12,
-    textAlign: "center",
-    lineHeight: 16,
+    color: COLORS.textTertiary,
+    fontSize: 11,
+    textAlign: 'center',
+    fontFamily: FONT_FAMILY.sans,
   },
 });

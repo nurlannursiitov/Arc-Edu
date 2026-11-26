@@ -1,363 +1,357 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
-} from "react-native";
-import { ScheduleItem } from "../types";
+} from 'react-native';
+import { MapPin, User, Radio, CalendarOff } from 'lucide-react-native';
+import { ScheduleItem, StudentProfile } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
 
 interface ScheduleScreenProps {
+  student: StudentProfile;
   schedule: ScheduleItem[];
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onBack: () => void;
   onNavigateAttendance: () => void;
 }
 
 const DAYS = [
-  { key: "ПН", label: "Понедельник" },
-  { key: "ВТ", label: "Вторник" },
-  { key: "СР", label: "Среда" },
-  { key: "ЧТ", label: "Четверг" },
-  { key: "ПТ", label: "Пятница" },
-  { key: "СБ", label: "Суббота" },
+  { key: 'ПН', label: 'Понедельник' },
+  { key: 'ВТ', label: 'Вторник' },
+  { key: 'СР', label: 'Среда' },
+  { key: 'ЧТ', label: 'Четверг' },
+  { key: 'ПТ', label: 'Пятница' },
+  { key: 'СБ', label: 'Суббота' },
 ];
 
 export const ScheduleScreen: React.FC<ScheduleScreenProps> = ({
+  student,
   schedule,
+  currentPage,
+  onNavigate,
+  onLogout,
   onBack,
   onNavigateAttendance,
 }) => {
-  const [selectedDay, setSelectedDay] = useState("ПН");
-
+  const [selectedDay, setSelectedDay] = useState('ПН');
   const daySchedule = schedule.filter((item) => item.day === selectedDay);
 
-  const getTypeColor = (type: string) => {
+  const getTypeStyle = (type: string) => {
     switch (type) {
-      case "lecture":
-        return "#00E5FF";
-      case "practice":
-        return "#10B981";
-      case "lab":
-        return "#F59E0B";
+      case 'lecture':
+        return { color: COLORS.accent, bg: COLORS.accentSoft, label: 'Лекция' };
+      case 'practice':
+        return { color: COLORS.info, bg: COLORS.infoSoft, label: 'Практика' };
       default:
-        return "#8B5CF6";
-    }
-  };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "lecture":
-        return "Лекция";
-      case "practice":
-        return "Практика";
-      case "lab":
-        return "Лаб. работа";
-      default:
-        return "Семинар";
+        return { color: COLORS.warning, bg: COLORS.warningSoft, label: 'Лаб. работа' };
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Расписание занятий</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Days selector bar */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.daysScroll}
-        >
-          {DAYS.map((d) => (
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Расписание занятий"
+      subtitle="Учебная неделя группы SE-2304"
+      onBack={onBack}
+    >
+      {/* Day Selector */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.daysScroll}
+        contentContainerStyle={styles.daysRow}
+      >
+        {DAYS.map((d) => {
+          const active = selectedDay === d.key;
+          return (
             <TouchableOpacity
               key={d.key}
-              style={[
-                styles.dayChip,
-                selectedDay === d.key && styles.dayChipActive,
-              ]}
+              style={[styles.dayPill, active && styles.dayPillActive]}
               onPress={() => setSelectedDay(d.key)}
+              activeOpacity={0.78}
             >
-              <Text
-                style={[
-                  styles.dayChipShort,
-                  selectedDay === d.key && styles.dayChipShortActive,
-                ]}
-              >
-                {d.key}
-              </Text>
-              <Text
-                style={[
-                  styles.dayChipSub,
-                  selectedDay === d.key && styles.dayChipSubActive,
-                ]}
-              >
+              <Text style={[styles.dayKey, active && styles.dayKeyActive]}>{d.key}</Text>
+              <Text style={[styles.daySub, active && styles.daySubActive]}>
                 {d.label.slice(0, 3)}
               </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          );
+        })}
+      </ScrollView>
 
-        <View style={styles.daySummaryRow}>
-          <Text style={styles.daySummaryTitle}>
-            {DAYS.find((d) => d.key === selectedDay)?.label}
-          </Text>
-          <Text style={styles.daySummaryBadge}>{daySchedule.length} занятий</Text>
+      <View style={styles.summaryBar}>
+        <Text style={styles.summaryTitle}>
+          {DAYS.find((d) => d.key === selectedDay)?.label}
+        </Text>
+        <View style={styles.countPill}>
+          <Text style={styles.countText}>{daySchedule.length} пар</Text>
         </View>
+      </View>
 
-        {daySchedule.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>🎉</Text>
-            <Text style={styles.emptyTitle}>В этот день пар нет</Text>
-            <Text style={styles.emptySub}>Отличный день для самоподготовки или хакатонов</Text>
-          </View>
-        ) : (
-          daySchedule.map((item) => (
-            <View key={item.id} style={styles.itemCard}>
-              <View style={styles.itemTimeCol}>
-                <Text style={styles.timeStart}>{item.startTime}</Text>
-                <View style={styles.timeLine} />
-                <Text style={styles.timeEnd}>{item.endTime}</Text>
-              </View>
+      {daySchedule.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <CalendarOff size={32} color={COLORS.textTertiary} strokeWidth={1.5} />
+          <Text style={styles.emptyTitle}>В этот день занятий нет</Text>
+          <Text style={styles.emptySub}>Свободное время для самостоятельной работы и проектов</Text>
+        </View>
+      ) : (
+        <View style={styles.timeline}>
+          {daySchedule.map((item) => {
+            const t = getTypeStyle(item.type);
+            return (
+              <View key={item.id} style={styles.classCard}>
+                <View style={[styles.leftStrip, { backgroundColor: t.color }]} />
 
-              <View style={styles.itemMainCol}>
-                <View style={styles.itemTopRow}>
-                  <View
-                    style={[
-                      styles.typeBadge,
-                      { backgroundColor: `${getTypeColor(item.type)}20` },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.typeBadgeText,
-                        { color: getTypeColor(item.type) },
-                      ]}
-                    >
-                      {getTypeLabel(item.type)}
-                    </Text>
-                  </View>
-                  <View style={styles.roomPill}>
-                    <Text style={styles.roomPillText}>Ауд. {item.room}</Text>
-                  </View>
+                <View style={styles.timeCol}>
+                  <Text style={styles.timeStart}>{item.startTime}</Text>
+                  <Text style={styles.timeEnd}>{item.endTime}</Text>
                 </View>
 
-                <Text style={styles.subjectName}>{item.subject}</Text>
-                <Text style={styles.profName}>Преподаватель: {item.professor}</Text>
+                <View style={styles.mainCol}>
+                  <View style={styles.topMetaRow}>
+                    <View style={[styles.typeBadge, { backgroundColor: t.bg }]}>
+                      <Text style={[styles.typeText, { color: t.color }]}>{t.label}</Text>
+                    </View>
+                    <View style={styles.roomRow}>
+                      <MapPin size={12} color={COLORS.textSecondary} strokeWidth={1.75} />
+                      <Text style={styles.roomText}>Ауд. {item.room}</Text>
+                    </View>
+                  </View>
 
-                <TouchableOpacity
-                  style={styles.checkInRow}
-                  onPress={onNavigateAttendance}
-                >
-                  <Text style={styles.checkInText}>📡 Перейти к Radar-отметке</Text>
-                </TouchableOpacity>
+                  <Text style={styles.subjectName}>{item.subject}</Text>
+
+                  <View style={styles.bottomRow}>
+                    <View style={styles.profRow}>
+                      <User size={12} color={COLORS.textTertiary} strokeWidth={1.75} />
+                      <Text style={styles.profText}>{item.professor}</Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.radarBtn}
+                      onPress={onNavigateAttendance}
+                      activeOpacity={0.78}
+                    >
+                      <Radio size={12} color={COLORS.accent} strokeWidth={2} />
+                      <Text style={styles.radarBtnText}>Radar Check-In</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-            </View>
-          ))
-        )}
-      </ScrollView>
-    </SafeAreaView>
+            );
+          })}
+        </View>
+      )}
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A11",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
   daysScroll: {
-    flexDirection: "row",
-    gap: 8,
+    flexGrow: 0,
     marginBottom: 20,
   },
-  dayChip: {
-    paddingVertical: 12,
+  daysRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dayPill: {
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: "#111827",
-    borderRadius: 14,
-    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    minWidth: 54,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    minWidth: 58,
   },
-  dayChipActive: {
-    backgroundColor: "rgba(0, 229, 255, 0.15)",
-    borderColor: "#00E5FF",
+  dayPillActive: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderColor: COLORS.borderAccent,
   },
-  dayChipShort: {
-    color: "#CBD5E1",
-    fontSize: 14,
-    fontWeight: "800",
+  dayKey: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: FONT_FAMILY.sans,
   },
-  dayChipShortActive: {
-    color: "#00E5FF",
+  dayKeyActive: {
+    color: COLORS.accentBright,
   },
-  dayChipSub: {
-    color: "#64748B",
+  daySub: {
+    color: COLORS.textTertiary,
     fontSize: 10,
     marginTop: 2,
+    fontFamily: FONT_FAMILY.sans,
   },
-  dayChipSubActive: {
-    color: "#00E5FF",
+  daySubActive: {
+    color: COLORS.textSecondary,
   },
-  daySummaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  daySummaryTitle: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "800",
-  },
-  daySummaryBadge: {
-    color: "#94A3B8",
-    fontSize: 12,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-  },
-  emptyCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 30,
-    alignItems: "center",
-  },
-  emptyIcon: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    color: "#FFFFFF",
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  emptySub: {
-    fontSize: 12,
-    color: "#64748B",
-    textAlign: "center",
-  },
-  itemCard: {
-    flexDirection: "row",
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+  summaryBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 14,
   },
-  itemTimeCol: {
-    alignItems: "center",
-    marginRight: 16,
-    width: 50,
+  summaryTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  countPill: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: RADIUS.pill,
+  },
+  countText: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  emptyCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 36,
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 4,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  emptySub: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    textAlign: 'center',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  timeline: {
+    gap: 12,
+  },
+  classCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    paddingLeft: 18,
+    overflow: 'hidden',
+    gap: 16,
+  },
+  leftStrip: {
+    position: 'absolute',
+    left: 0,
+    top: 12,
+    bottom: 12,
+    width: 3,
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
+  },
+  timeCol: {
+    width: 62,
+    justifyContent: 'center',
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+    paddingRight: 12,
+    gap: 4,
   },
   timeStart: {
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
     fontSize: 13,
-    fontWeight: "700",
-  },
-  timeLine: {
-    flex: 1,
-    width: 2,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    marginVertical: 4,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.mono,
   },
   timeEnd: {
-    color: "#64748B",
-    fontSize: 12,
+    color: COLORS.textTertiary,
+    fontSize: 11,
+    fontFamily: FONT_FAMILY.mono,
   },
-  itemMainCol: {
+  mainCol: {
     flex: 1,
+    gap: 8,
   },
-  itemTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
+  topMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   typeBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
-  typeBadgeText: {
+  typeText: {
     fontSize: 10,
-    fontWeight: "800",
-    textTransform: "uppercase",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  roomPill: {
-    backgroundColor: "rgba(0, 229, 255, 0.1)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+  roomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  roomPillText: {
-    color: "#00E5FF",
-    fontSize: 11,
-    fontWeight: "700",
+  roomText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.mono,
   },
   subjectName: {
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
     fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 4,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  profName: {
-    color: "#94A3B8",
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingTop: 4,
+  },
+  profRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  profText: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    marginBottom: 10,
+    fontFamily: FONT_FAMILY.sans,
   },
-  checkInRow: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.04)",
-    paddingVertical: 6,
+  radarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.accentSoft,
     paddingHorizontal: 10,
-    borderRadius: 8,
+    paddingVertical: 5,
+    borderRadius: RADIUS.sm,
   },
-  checkInText: {
-    color: "#00E5FF",
+  radarBtnText: {
+    color: COLORS.accentBright,
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
 });

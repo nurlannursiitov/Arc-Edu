@@ -1,160 +1,156 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-} from "react-native";
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Check } from 'lucide-react-native';
+import { StudentProfile } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
 
 interface LanguageScreenProps {
+  student: StudentProfile;
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onBack: () => void;
 }
 
 const LANGUAGES = [
-  { code: "ru", name: "Русский", flag: "🇷🇺", native: "Русский язык" },
-  { code: "kz", name: "Қазақша", flag: "🇰🇿", native: "Қазақ тілі" },
-  { code: "en", name: "English", flag: "🇬🇧", native: "English (US)" },
+  { code: 'ru', short: 'RU', name: 'Русский', native: 'Русский язык интерфейса' },
+  { code: 'kz', short: 'KZ', name: 'Қазақша', native: 'Қазақ тіліндегі интерфейс' },
+  { code: 'en', short: 'EN', name: 'English', native: 'English (US) interface' },
 ];
 
-export const LanguageScreen: React.FC<LanguageScreenProps> = ({ onBack }) => {
-  const [selected, setSelected] = useState("ru");
+export const LanguageScreen: React.FC<LanguageScreenProps> = ({
+  student,
+  currentPage,
+  onNavigate,
+  onLogout,
+  onBack,
+}) => {
+  const [selected, setSelected] = useState('ru');
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Язык интерфейса</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <View style={styles.content}>
-        <Text style={styles.subtitle}>
-          Выберите язык для отображения дисциплин, расписания и сервисов кампуса
-        </Text>
-
-        <View style={styles.list}>
-          {LANGUAGES.map((lang) => {
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Язык интерфейса"
+      subtitle="Локализация дисциплин, расписания и сервисов"
+      onBack={onBack}
+    >
+      <View style={styles.wrap}>
+        <View style={styles.listCard}>
+          {LANGUAGES.map((lang, idx) => {
             const isSelected = selected === lang.code;
             return (
-              <TouchableOpacity
-                key={lang.code}
-                style={[styles.langItem, isSelected && styles.langItemActive]}
-                onPress={() => setSelected(lang.code)}
-              >
-                <View style={styles.langLeft}>
-                  <Text style={styles.flag}>{lang.flag}</Text>
-                  <View>
-                    <Text style={styles.langName}>{lang.name}</Text>
-                    <Text style={styles.langNative}>{lang.native}</Text>
+              <React.Fragment key={lang.code}>
+                <TouchableOpacity
+                  style={styles.langRow}
+                  onPress={() => setSelected(lang.code)}
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.langLeft}>
+                    <View style={[styles.codeBadge, isSelected && styles.codeBadgeActive]}>
+                      <Text
+                        style={[
+                          styles.codeText,
+                          isSelected && { color: COLORS.accentBright },
+                        ]}
+                      >
+                        {lang.short}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={styles.langName}>{lang.name}</Text>
+                      <Text style={styles.langNative}>{lang.native}</Text>
+                    </View>
                   </View>
-                </View>
-                {isSelected && <Text style={styles.checkIcon}>✓</Text>}
-              </TouchableOpacity>
+
+                  {isSelected && <Check size={17} color={COLORS.accent} strokeWidth={2.2} />}
+                </TouchableOpacity>
+                {idx < LANGUAGES.length - 1 && <View style={styles.divider} />}
+              </React.Fragment>
             );
           })}
         </View>
 
-        <TouchableOpacity style={styles.applyBtn} onPress={onBack}>
+        <TouchableOpacity style={styles.applyBtn} onPress={onBack} activeOpacity={0.85}>
           <Text style={styles.applyBtnText}>Применить</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A11",
+  wrap: {
+    maxWidth: 520,
+    gap: 18,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  content: {
-    padding: 20,
-  },
-  subtitle: {
-    color: "#94A3B8",
-    fontSize: 13,
-    marginBottom: 20,
-  },
-  list: {
-    gap: 12,
-    marginBottom: 24,
-  },
-  langItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#111827",
-    padding: 16,
-    borderRadius: 16,
+  listCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: COLORS.border,
+    paddingHorizontal: 16,
   },
-  langItemActive: {
-    borderColor: "#00E5FF",
-    backgroundColor: "rgba(0,229,255,0.08)",
+  langRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
   },
   langLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
   },
-  flag: {
-    fontSize: 26,
+  codeBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  codeBadgeActive: {
+    backgroundColor: COLORS.accentSoft,
+    borderColor: COLORS.borderAccent,
+  },
+  codeText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: FONT_FAMILY.mono,
   },
   langName: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
   langNative: {
-    color: "#64748B",
+    color: COLORS.textTertiary,
     fontSize: 12,
+    marginTop: 1,
+    fontFamily: FONT_FAMILY.sans,
   },
-  checkIcon: {
-    color: "#00E5FF",
-    fontSize: 18,
-    fontWeight: "900",
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.border,
   },
   applyBtn: {
-    backgroundColor: "#00E5FF",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.md,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
   applyBtnText: {
-    color: "#050B14",
+    color: COLORS.textInverse,
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
 });

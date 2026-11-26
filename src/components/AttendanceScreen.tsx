@@ -1,477 +1,658 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Animated,
   Easing,
   Alert,
-} from "react-native";
-import { Classroom } from "../types";
+  Platform,
+} from 'react-native';
+import { useResponsive } from '../hooks/useResponsive';
+import Svg, { Circle, Line, Path, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+import {
+  Radio,
+  Nfc,
+  QrCode,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
+} from 'lucide-react-native';
+import { Classroom, StudentProfile } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
+import { RadarService } from '../services/radarService';
 
 interface AttendanceScreenProps {
+  student: StudentProfile;
   classroom: Classroom;
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onBack: () => void;
 }
 
-export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({ classroom, onBack }) => {
-  const [pulse] = useState(new Animated.Value(0));
-  const [distance, setDistance] = useState(24);
+export const AttendanceScreen: React.FC<AttendanceScreenProps> = ({
+  student,
+  classroom,
+  currentPage,
+  onNavigate,
+  onLogout,
+  onBack,
+}) => {
+  const { isDesktop } = useResponsive();
+
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0)).current;
+
+  const [simulateFar, setSimulateFar] = useState(false);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [scanMode, setScanMode] = useState<"radar" | "nfc" | "qr">("radar");
+  const [scanMode, setScanMode] = useState<'radar' | 'nfc' | 'qr'>('radar');
+
+  // Compute geofence via RadarService with deterministic simulated student coordinates
+  const studentLat = simulateFar ? classroom.latitude + 0.00075 : classroom.latitude + 0.00018;
+  const studentLon = simulateFar ? classroom.longitude + 0.0004 : classroom.longitude + 0.00014;
+  const geofence = RadarService.verifyClassroomPresence(studentLat, studentLon, classroom);
 
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(pulse, {
+    const useNative = Platform.OS !== 'web';
+    const spinLoop = Animated.loop(
+      Animated.timing(spinAnim, {
         toValue: 1,
-        duration: 2200,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
+        duration: 3800,
+        easing: Easing.linear,
+        useNativeDriver: useNative,
       })
-    ).start();
-  }, [pulse]);
+    );
+    const pulseLoop = Animated.loop(
+      Animated.timing(pulseAnim, {
+        toValue: 1,
+        duration: 2400,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: useNative,
+      })
+    );
+    spinLoop.start();
+    pulseLoop.start();
 
-  const scale = pulse.interpolate({
+    return () => {
+      spinLoop.stop();
+      pulseLoop.stop();
+    };
+  }, [spinAnim, pulseAnim]);
+
+  const spinDeg = spinAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 2.4],
+    outputRange: ['0deg', '360deg'],
   });
 
-  const opacity = pulse.interpolate({
+  const pulseScale = pulseAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.8, 0],
+    outputRange: [0.4, 1],
+  });
+
+  const pulseOpacity = pulseAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.55, 0],
   });
 
   const handleCheckIn = () => {
-    const range = classroom.beaconRange || classroom.allowed_radius_meters || 60;
-    if (distance <= range) {
+    if (geofence.isWithinRadius) {
       setIsCheckedIn(true);
       Alert.alert(
-        "Присутствие зафиксировано! ✅",
-        `Вы успешно отметились на паре "${classroom.currentSubject}" в аудитории ${classroom.number}. Хэш верификации AITU Geofence записан в базу посещаемости.`
+        'Присутствие подтверждено',
+        `Отметка зафиксирована для пары «${classroom.currentSubject}» в аудитории ${classroom.number} (${geofence.distanceMeters} м от маяка).`
       );
     } else {
       Alert.alert(
-        "Вне зоны аудитории ⚠️",
-        `Вы находитесь на расстоянии ${distance}м. Максимальный радиус аудитории ${classroom.number} составляет ${range}м.`
+        'Вне зоны аудитории',
+        `Текущее расстояние ${geofence.distanceMeters} м превышает допустимый радиус ${geofence.allowedRadiusMeters} м.`
       );
     }
   };
 
-  const toggleLocationSim = () => {
-    setDistance(distance === 24 ? 75 : 24);
-  };
-
-  const maxRange = classroom.beaconRange || classroom.allowed_radius_meters || 60;
-  const inRange = distance <= maxRange;
+  const simAction = (
+    <TouchableOpacity
+      style={[styles.simPill, !geofence.isWithinRadius && styles.simPillWarn]}
+      onPress={() => setSimulateFar(!simulateFar)}
+      activeOpacity={0.8}
+    >
+      <Text style={[styles.simPillText, !geofence.isWithinRadius && { color: COLORS.warning }]}>
+        Тест: {geofence.distanceMeters} м
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Radar Attendance</Text>
-        <TouchableOpacity style={styles.simBtn} onPress={toggleLocationSim}>
-          <Text style={styles.simBtnText}>Тест: {distance}м</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.content}>
-        {/* Lecture Info Card */}
-        <View style={styles.lectureInfo}>
-          <View style={styles.lectureBadgeRow}>
-            <View style={styles.roomPill}>
-              <Text style={styles.roomPillText}>АУДИТОРИЯ {classroom.number}</Text>
-            </View>
-            <View style={styles.liveTag}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveTagText}>LIVE BEACON</Text>
-            </View>
-          </View>
-
-          <Text style={styles.subjectTitle}>{classroom.currentSubject}</Text>
-          <Text style={styles.profName}>{classroom.professor}</Text>
-          <Text style={styles.timeSlot}>⏰ {classroom.timeSlot} • {classroom.building}</Text>
-        </View>
-
-        {/* Mode Selector */}
-        <View style={styles.tabsRow}>
-          <TouchableOpacity
-            style={[styles.tabBtn, scanMode === "radar" && styles.tabBtnActive]}
-            onPress={() => setScanMode("radar")}
-          >
-            <Text style={[styles.tabBtnText, scanMode === "radar" && styles.tabBtnTextActive]}>
-              📡 BLE Radar
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, scanMode === "nfc" && styles.tabBtnActive]}
-            onPress={() => setScanMode("nfc")}
-          >
-            <Text style={[styles.tabBtnText, scanMode === "nfc" && styles.tabBtnTextActive]}>
-              📱 NFC Tag
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tabBtn, scanMode === "qr" && styles.tabBtnActive]}
-            onPress={() => setScanMode("qr")}
-          >
-            <Text style={[styles.tabBtnText, scanMode === "qr" && styles.tabBtnTextActive]}>
-              📷 Dynamic QR
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Visual Scanner Area */}
-        <View style={styles.scannerWrapper}>
-          {scanMode === "radar" && (
-            <View style={styles.radarContainer}>
-              <Animated.View
-                style={[
-                  styles.pulseRing,
-                  {
-                    transform: [{ scale }],
-                    opacity,
-                  },
-                ]}
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Radar Attendance"
+      subtitle="Геофенсинг и отметка присутствия на занятии"
+      onBack={onBack}
+      rightAction={simAction}
+    >
+      <View style={[styles.grid, isDesktop && styles.gridDesktop]}>
+        {/* Left: Precision Visual Scanner */}
+        <View style={[styles.scannerCard, isDesktop && { flex: 1 }]}>
+          <View style={styles.tabsRow}>
+            <TouchableOpacity
+              style={[styles.tabBtn, scanMode === 'radar' && styles.tabBtnActive]}
+              onPress={() => setScanMode('radar')}
+            >
+              <Radio
+                size={14}
+                color={scanMode === 'radar' ? COLORS.accent : COLORS.textSecondary}
+                strokeWidth={1.75}
               />
-              <View style={styles.radarCore}>
-                <Text style={styles.radarCoreIcon}>📍</Text>
-                <Text style={styles.distanceBadge}>{distance} метров</Text>
-                <Text style={styles.distanceStatus}>{inRange ? "В АУДИТОРИИ" : "ДАЛЕКО"}</Text>
-              </View>
-            </View>
-          )}
+              <Text style={[styles.tabText, scanMode === 'radar' && styles.tabTextActive]}>
+                BLE Radar
+              </Text>
+            </TouchableOpacity>
 
-          {scanMode === "nfc" && (
-            <View style={styles.nfcContainer}>
-              <Text style={styles.nfcBigIcon}>📳</Text>
-              <Text style={styles.nfcTitle}>Приложите телефон к парте</Text>
-              <Text style={styles.nfcSub}>NFC-метка аудитории {classroom.number}</Text>
-            </View>
-          )}
+            <TouchableOpacity
+              style={[styles.tabBtn, scanMode === 'nfc' && styles.tabBtnActive]}
+              onPress={() => setScanMode('nfc')}
+            >
+              <Nfc
+                size={14}
+                color={scanMode === 'nfc' ? COLORS.accent : COLORS.textSecondary}
+                strokeWidth={1.75}
+              />
+              <Text style={[styles.tabText, scanMode === 'nfc' && styles.tabTextActive]}>
+                NFC Tag
+              </Text>
+            </TouchableOpacity>
 
-          {scanMode === "qr" && (
-            <View style={styles.qrContainer}>
-              <View style={styles.qrFrame}>
-                <Text style={styles.qrIcon}>🎯</Text>
-                <Text style={styles.qrText}>Сканируйте QR на экране преподавателя</Text>
+            <TouchableOpacity
+              style={[styles.tabBtn, scanMode === 'qr' && styles.tabBtnActive]}
+              onPress={() => setScanMode('qr')}
+            >
+              <QrCode
+                size={14}
+                color={scanMode === 'qr' ? COLORS.accent : COLORS.textSecondary}
+                strokeWidth={1.75}
+              />
+              <Text style={[styles.tabText, scanMode === 'qr' && styles.tabTextActive]}>
+                Dynamic QR
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.scannerStage}>
+            {scanMode === 'radar' && (
+              <View style={styles.radarBox}>
+                {/* Static Precision Concentric SVG Rings + Crosshair */}
+                <Svg width={240} height={240} viewBox="0 0 240 240">
+                  <Circle cx={120} cy={120} r={112} stroke="rgba(255,255,255,0.06)" strokeWidth={1} fill="none" />
+                  <Circle cx={120} cy={120} r={82} stroke="rgba(255,255,255,0.06)" strokeWidth={1} fill="none" />
+                  <Circle cx={120} cy={120} r={52} stroke="rgba(16,185,129,0.22)" strokeWidth={1} fill="none" />
+                  <Line x1={120} y1={8} x2={120} y2={232} stroke="rgba(255,255,255,0.04)" strokeWidth={1} />
+                  <Line x1={8} y1={120} x2={232} y2={120} stroke="rgba(255,255,255,0.04)" strokeWidth={1} />
+                </Svg>
+
+                {/* Animated Rotating Radar Sweep */}
+                <Animated.View
+                  style={[
+                    styles.sweepOverlay,
+                    { transform: [{ rotate: spinDeg }] },
+                  ]}
+                  pointerEvents="none"
+                >
+                  <Svg width={240} height={240} viewBox="0 0 240 240">
+                    <Defs>
+                      <SvgGradient id="sweepGrad" x1="120" y1="120" x2="210" y2="40" gradientUnits="userSpaceOnUse">
+                        <Stop
+                          offset="0"
+                          stopColor={geofence.isWithinRadius ? COLORS.accent : COLORS.warning}
+                          stopOpacity="0.32"
+                        />
+                        <Stop
+                          offset="1"
+                          stopColor={geofence.isWithinRadius ? COLORS.accent : COLORS.warning}
+                          stopOpacity="0"
+                        />
+                      </SvgGradient>
+                    </Defs>
+                    <Path d="M120 120 L120 10 A110 110 0 0 1 215 65 Z" fill="url(#sweepGrad)" />
+                    <Line
+                      x1={120}
+                      y1={120}
+                      x2={120}
+                      y2={10}
+                      stroke={geofence.isWithinRadius ? COLORS.accent : COLORS.warning}
+                      strokeWidth={1.5}
+                      strokeOpacity={0.75}
+                    />
+                  </Svg>
+                </Animated.View>
+
+                {/* Subtle Pulse Ring */}
+                <Animated.View
+                  style={[
+                    styles.pulseCircle,
+                    {
+                      borderColor: geofence.isWithinRadius ? COLORS.accent : COLORS.warning,
+                      transform: [{ scale: pulseScale }],
+                      opacity: pulseOpacity,
+                    },
+                  ]}
+                  pointerEvents="none"
+                />
+
+                {/* Core Readout */}
+                <View
+                  style={[
+                    styles.radarCore,
+                    {
+                      borderColor: geofence.isWithinRadius
+                        ? COLORS.borderAccent
+                        : 'rgba(245, 158, 11, 0.35)',
+                    },
+                  ]}
+                >
+                  <Text style={styles.distanceNum}>{geofence.distanceMeters} м</Text>
+                  <Text
+                    style={[
+                      styles.distanceSub,
+                      { color: geofence.isWithinRadius ? COLORS.accentBright : COLORS.warning },
+                    ]}
+                  >
+                    {geofence.isWithinRadius ? 'В ЗОНЕ' : 'ДАЛЕКО'}
+                  </Text>
+                </View>
               </View>
-            </View>
-          )}
+            )}
+
+            {scanMode === 'nfc' && (
+              <View style={styles.altStage}>
+                <View style={styles.altRingOuter}>
+                  <View style={styles.altRingInner}>
+                    <Nfc size={34} color={COLORS.accent} strokeWidth={1.6} />
+                  </View>
+                </View>
+                <Text style={styles.altTitle}>Поднесите смартфон к NFC-метке</Text>
+                <Text style={styles.altSub}>Метка установлена на кафедре аудитории {classroom.number}</Text>
+              </View>
+            )}
+
+            {scanMode === 'qr' && (
+              <View style={styles.altStage}>
+                <View style={styles.qrFrame}>
+                  <QrCode size={52} color={COLORS.textPrimary} strokeWidth={1.5} />
+                </View>
+                <Text style={styles.altTitle}>Сканируйте код на экране проектора</Text>
+                <Text style={styles.altSub}>Динамический токен обновляется каждые 30 секунд</Text>
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* Geofence Status Card */}
-        <View style={styles.statusBox}>
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Радиус обнаружения:</Text>
-            <Text style={styles.statusValue}>{maxRange} метров (BLE & GPS)</Text>
+        {/* Right: Lecture Context & Verification */}
+        <View style={[styles.rightCol, isDesktop && { flex: 1 }]}>
+          <View style={styles.infoCard}>
+            <View style={styles.infoTopRow}>
+              <View style={styles.roomBadge}>
+                <MapPin size={12} color={COLORS.accent} strokeWidth={1.75} />
+                <Text style={styles.roomBadgeText}>Аудитория {classroom.number}</Text>
+              </View>
+              <View style={styles.timeBadge}>
+                <Clock size={12} color={COLORS.textTertiary} strokeWidth={1.75} />
+                <Text style={styles.timeBadgeText}>{classroom.timeSlot}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.subjectTitle}>{classroom.currentSubject}</Text>
+            <Text style={styles.profText}>
+              {classroom.professor} · {classroom.building}
+            </Text>
           </View>
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Статус верификации:</Text>
+
+          <View style={styles.statusCard}>
+            <Text style={styles.statusHeader}>Параметры верификации</Text>
+
+            <View style={styles.statusRow}>
+              <Text style={styles.statusKey}>Допустимый радиус</Text>
+              <Text style={styles.statusValMono}>{geofence.allowedRadiusMeters} м (BLE + GPS)</Text>
+            </View>
+
+            <View style={styles.statusRow}>
+              <Text style={styles.statusKey}>Дистанция до маяка</Text>
+              <View style={styles.statusInline}>
+                {geofence.isWithinRadius ? (
+                  <CheckCircle2 size={14} color={COLORS.accent} strokeWidth={2} />
+                ) : (
+                  <AlertCircle size={14} color={COLORS.warning} strokeWidth={2} />
+                )}
+                <Text
+                  style={[
+                    styles.statusVal,
+                    { color: geofence.isWithinRadius ? COLORS.accentBright : COLORS.warning },
+                  ]}
+                >
+                  {geofence.isWithinRadius ? 'В пределах аудитории' : 'Вне зоны доступа'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={[styles.statusRow, { borderBottomWidth: 0, paddingBottom: 2 }]}>
+              <Text style={styles.statusKey}>Антиспуфинг</Text>
+              <View style={styles.statusInline}>
+                <ShieldCheck size={14} color={COLORS.textSecondary} strokeWidth={1.75} />
+                <Text style={styles.statusValMono}>AITU Signed Token</Text>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            disabled={isCheckedIn}
+            style={[
+              styles.confirmBtn,
+              isCheckedIn && styles.confirmBtnDone,
+              !geofence.isWithinRadius && !isCheckedIn && styles.confirmBtnDisabled,
+            ]}
+            onPress={handleCheckIn}
+            activeOpacity={0.85}
+          >
             <Text
               style={[
-                styles.statusValue,
-                { color: inRange ? "#00D174" : "#EF4444" },
+                styles.confirmBtnText,
+                !geofence.isWithinRadius && !isCheckedIn && { color: COLORS.textTertiary },
               ]}
             >
-              {inRange ? "В пределах аудитории ✓" : "Слишком далеко ✕"}
+              {isCheckedIn
+                ? 'Присутствие подтверждено'
+                : geofence.isWithinRadius
+                ? 'Подтвердить присутствие'
+                : `Подойдите ближе (${geofence.distanceMeters} м > ${geofence.allowedRadiusMeters} м)`}
             </Text>
-          </View>
-          <View style={styles.statusRow}>
-            <Text style={styles.statusLabel}>Защита от спуфинга:</Text>
-            <Text style={[styles.statusValue, { color: "#00D174" }]}>
-              Шифрование AITU Token ID
-            </Text>
-          </View>
+          </TouchableOpacity>
         </View>
-
-        {/* Action Button */}
-        <TouchableOpacity
-          disabled={isCheckedIn}
-          style={[
-            styles.checkInButton,
-            isCheckedIn && styles.checkInButtonSuccess,
-            !inRange && styles.checkInButtonDisabled,
-          ]}
-          onPress={handleCheckIn}
-        >
-          <Text style={styles.checkInButtonText}>
-            {isCheckedIn
-              ? "✓ ПРИСУТСТВИЕ ЗАФИКСИРОВАНО"
-              : inRange
-              ? "ПОДТВЕРДИТЬ ПРИСУТСТВИЕ НА ПАРЕ"
-              : `ПОДОЙДИТЕ БЛИЖЕ (${distance}м > ${maxRange}м)`}
-          </Text>
-        </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A0F",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
+  simPill: {
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderAccent,
+    paddingHorizontal: 11,
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "#121A24",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderRadius: RADIUS.pill,
   },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 13,
-    fontWeight: "700",
+  simPillWarn: {
+    backgroundColor: COLORS.warningSoft,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
   },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  simBtn: {
-    backgroundColor: "rgba(0, 209, 116, 0.12)",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#00D174",
-  },
-  simBtnText: {
-    color: "#00D174",
+  simPillText: {
+    color: COLORS.accentBright,
     fontSize: 11,
-    fontWeight: "800",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.mono,
   },
-  content: {
-    padding: 18,
-    flex: 1,
-    justifyContent: "space-between",
+  grid: {
+    gap: 18,
   },
-  lectureInfo: {
-    backgroundColor: "#121A24",
-    borderRadius: 18,
-    padding: 18,
+  gridDesktop: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  scannerCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-  },
-  lectureBadgeRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  roomPill: {
-    backgroundColor: "rgba(0, 209, 116, 0.15)",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  roomPillText: {
-    color: "#00D174",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 0.5,
-  },
-  liveTag: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#00D174",
-  },
-  liveTagText: {
-    color: "#00D174",
-    fontSize: 9,
-    fontWeight: "800",
-  },
-  subjectTitle: {
-    color: "#FFFFFF",
-    fontSize: 17,
-    fontWeight: "800",
-    marginBottom: 4,
-  },
-  profName: {
-    color: "#94A3B8",
-    fontSize: 13,
-    marginBottom: 6,
-  },
-  timeSlot: {
-    color: "#CBD5E1",
-    fontSize: 11,
-    fontWeight: "600",
+    borderColor: COLORS.border,
+    padding: 18,
+    justifyContent: 'space-between',
   },
   tabsRow: {
-    flexDirection: "row",
-    backgroundColor: "#121A24",
-    borderRadius: 14,
+    flexDirection: 'row',
+    backgroundColor: COLORS.bg,
+    borderRadius: RADIUS.md,
     padding: 4,
-    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 4,
   },
   tabBtn: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     paddingVertical: 8,
-    alignItems: "center",
-    borderRadius: 10,
+    borderRadius: RADIUS.sm,
   },
   tabBtnActive: {
-    backgroundColor: "#1A2533",
+    backgroundColor: COLORS.surfaceElevated,
   },
-  tabBtnText: {
+  tabText: {
+    color: COLORS.textSecondary,
     fontSize: 11,
-    color: "#64748B",
-    fontWeight: "700",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  tabBtnTextActive: {
-    color: "#00D174",
-    fontWeight: "800",
+  tabTextActive: {
+    color: COLORS.textPrimary,
   },
-  scannerWrapper: {
-    height: 200,
-    justifyContent: "center",
-    alignItems: "center",
+  scannerStage: {
+    height: 280,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  radarContainer: {
-    justifyContent: "center",
-    alignItems: "center",
+  radarBox: {
+    width: 240,
+    height: 240,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  pulseRing: {
-    position: "absolute",
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 2,
-    borderColor: "#00D174",
-    backgroundColor: "rgba(0, 209, 116, 0.15)",
+  sweepOverlay: {
+    position: 'absolute',
+    width: 240,
+    height: 240,
+  },
+  pulseCircle: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1,
   },
   radarCore: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: "#0D131B",
-    borderWidth: 2,
-    borderColor: "#00D174",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#00D174",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
-    elevation: 8,
+    position: 'absolute',
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: COLORS.bg,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  radarCoreIcon: {
-    fontSize: 24,
+  distanceNum: {
+    color: COLORS.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    fontFamily: FONT_FAMILY.mono,
   },
-  distanceBadge: {
-    color: "#FFFFFF",
-    fontSize: 11,
-    fontWeight: "800",
+  distanceSub: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.8,
     marginTop: 2,
+    fontFamily: FONT_FAMILY.sans,
   },
-  distanceStatus: {
-    color: "#00D174",
-    fontSize: 8,
-    fontWeight: "900",
-    marginTop: 1,
+  altStage: {
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
   },
-  nfcContainer: {
-    alignItems: "center",
+  altRingOuter: {
+    width: 116,
+    height: 116,
+    borderRadius: 58,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  nfcBigIcon: {
-    fontSize: 50,
-    marginBottom: 8,
-  },
-  nfcTitle: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  nfcSub: {
-    color: "#94A3B8",
-    fontSize: 12,
-    marginTop: 2,
-  },
-  qrContainer: {
-    width: "80%",
-    aspectRatio: 1.3,
-    borderWidth: 2,
-    borderColor: "#00D174",
-    borderRadius: 18,
-    borderStyle: "dashed",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
+  altRingInner: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.borderAccent,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   qrFrame: {
-    alignItems: "center",
+    width: 116,
+    height: 116,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: COLORS.borderAccent,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  qrIcon: {
-    fontSize: 36,
-    marginBottom: 8,
+  altTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    fontFamily: FONT_FAMILY.sans,
   },
-  qrText: {
-    color: "#94A3B8",
+  altSub: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    textAlign: "center",
+    textAlign: 'center',
+    fontFamily: FONT_FAMILY.sans,
   },
-  statusBox: {
-    backgroundColor: "#121A24",
-    borderRadius: 16,
-    padding: 16,
+  rightCol: {
+    gap: 14,
+    justifyContent: 'space-between',
+  },
+  infoCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    gap: 8,
+    borderColor: COLORS.border,
+    padding: 18,
+  },
+  infoTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  roomBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: COLORS.accentSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.sm,
+  },
+  roomBadgeText: {
+    color: COLORS.accentBright,
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
+  },
+  timeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  timeBadgeText: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontFamily: FONT_FAMILY.mono,
+  },
+  subjectTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+    marginBottom: 4,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  profText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontFamily: FONT_FAMILY.sans,
+  },
+  statusCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 18,
+  },
+  statusHeader: {
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 10,
+    fontFamily: FONT_FAMILY.sans,
   },
   statusRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  statusLabel: {
+  statusKey: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#64748B",
+    fontFamily: FONT_FAMILY.sans,
   },
-  statusValue: {
+  statusInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusVal: {
+    color: COLORS.textPrimary,
     fontSize: 12,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
-  checkInButton: {
-    backgroundColor: "#00D174",
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: "center",
-    shadowColor: "#00D174",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
+  statusValMono: {
+    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.mono,
   },
-  checkInButtonSuccess: {
-    backgroundColor: "#10B981",
+  confirmBtn: {
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.md,
+    paddingVertical: 15,
+    alignItems: 'center',
   },
-  checkInButtonDisabled: {
-    backgroundColor: "#1E293B",
+  confirmBtnDone: {
+    backgroundColor: COLORS.accentDeep,
   },
-  checkInButtonText: {
-    color: "#070A0F",
-    fontSize: 13,
-    fontWeight: "900",
-    letterSpacing: 0.5,
+  confirmBtnDisabled: {
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  confirmBtnText: {
+    color: COLORS.textInverse,
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
 });

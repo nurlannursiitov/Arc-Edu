@@ -1,279 +1,309 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   ScrollView,
   Alert,
-} from "react-native";
-import { PartnerPerk } from "../types";
+} from 'react-native';
+import { useResponsive } from '../hooks/useResponsive';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Copy, Check, Sparkles } from 'lucide-react-native';
+import { PartnerPerk, StudentProfile } from '../types';
+import { COLORS, FONT_FAMILY, RADIUS } from '../theme/tokens';
+import { AppShell } from './ui/AppShell';
 
 interface FreedomPerksScreenProps {
+  student: StudentProfile;
   perks: PartnerPerk[];
+  currentPage: string;
+  onNavigate: (page: string) => void;
+  onLogout: () => void;
   onBack: () => void;
 }
 
-export const FreedomPerksScreen: React.FC<FreedomPerksScreenProps> = ({ perks, onBack }) => {
-  const [selectedCategory, setSelectedCategory] = useState("all");
+const CATEGORIES = [
+  { key: 'all', label: 'Все предложения' },
+  { key: 'food', label: 'Еда и кофе' },
+  { key: 'lifestyle', label: 'Кино и досуг' },
+  { key: 'edtech', label: 'IT-инструменты' },
+  { key: 'travel', label: 'Транспорт' },
+];
 
-  const categories = [
-    { key: "all", label: "Все скидки" },
-    { key: "food", label: "Еда & Кофе" },
-    { key: "lifestyle", label: "Спорт & Одежда" },
-    { key: "edtech", label: "IT Курсы" },
-    { key: "travel", label: "Поездки" },
-  ];
+export const FreedomPerksScreen: React.FC<FreedomPerksScreenProps> = ({
+  student,
+  perks,
+  currentPage,
+  onNavigate,
+  onLogout,
+  onBack,
+}) => {
+  const { isDesktop } = useResponsive();
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const filtered =
-    selectedCategory === "all"
+    selectedCategory === 'all'
       ? perks
       : perks.filter((p) => p.category === selectedCategory);
 
-  const copyCode = (code?: string) => {
+  const handleCopy = (id: string, code?: string) => {
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 1800);
     Alert.alert(
-      "Промокод скопирован! 📋",
-      `Код "${code}" применен к вашей студенческой карте Freedom VIP. Покажите его на кассе или введите в приложении партнера.`
+      'Промокод скопирован',
+      `Код ${code} активирован для вашей карты Student Black.`
     );
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <Text style={styles.backButtonText}>← Назад</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Freedom Student Perks</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.heroBanner}>
-          <Text style={styles.heroBrand}>FREEDOM HOLDING CORP. × AITU</Text>
-          <Text style={styles.heroTitle}>Привилегии студенческой карты</Text>
-          <Text style={styles.heroDesc}>
-            Эксклюзивный кешбэк до 20% и партнерские скидки по всему Казахстану при оплате картой Arc Edu Black VIP.
-          </Text>
+    <AppShell
+      currentPage={currentPage}
+      onNavigate={onNavigate}
+      onLogout={onLogout}
+      student={student}
+      title="Freedom Perks"
+      subtitle="Эксклюзивные скидки и кешбэк для студентов AITU"
+      onBack={onBack}
+    >
+      {/* Hero Banner */}
+      <LinearGradient
+        colors={['#151922', '#10131A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroCard}
+      >
+        <View style={styles.heroTag}>
+          <Sparkles size={13} color={COLORS.accent} strokeWidth={2} />
+          <Text style={styles.heroTagText}>FREEDOM ECOSYSTEM</Text>
         </View>
+        <Text style={styles.heroTitle}>Кешбэк до 20% по карте Student Black</Text>
+        <Text style={styles.heroDesc}>
+          Используйте промокоды у партнёров вокруг кампуса AITU или оплачивайте картой Freedom напрямую.
+        </Text>
+      </LinearGradient>
 
-        {/* Categories row */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.catScroll}
-        >
-          {categories.map((c) => (
+      {/* Category Filter */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0, marginBottom: 18 }}
+        contentContainerStyle={styles.catRow}
+      >
+        {CATEGORIES.map((c) => {
+          const active = selectedCategory === c.key;
+          return (
             <TouchableOpacity
               key={c.key}
-              style={[
-                styles.catPill,
-                selectedCategory === c.key && styles.catPillActive,
-              ]}
+              style={[styles.catPill, active && styles.catPillActive]}
               onPress={() => setSelectedCategory(c.key)}
+              activeOpacity={0.78}
             >
-              <Text
-                style={[
-                  styles.catPillText,
-                  selectedCategory === c.key && styles.catPillTextActive,
-                ]}
-              >
-                {c.label}
-              </Text>
+              <Text style={[styles.catText, active && styles.catTextActive]}>{c.label}</Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Perks list */}
-        {filtered.map((perk) => (
-          <View key={perk.id} style={styles.perkCard}>
-            <View style={styles.perkTopRow}>
-              <View style={styles.brandInfo}>
-                <Text style={styles.brandName}>{perk.partnerName}</Text>
-                <Text style={styles.perkTitle}>{perk.title}</Text>
-              </View>
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>{perk.discount}</Text>
-              </View>
-            </View>
-
-            <Text style={styles.perkDesc}>{perk.description}</Text>
-
-            <View style={styles.perkFooter}>
-              <Text style={styles.expiryText}>Действует до {perk.expiresAt}</Text>
-              {perk.promoCode && (
-                <TouchableOpacity
-                  style={styles.codeBtn}
-                  onPress={() => copyCode(perk.promoCode)}
-                >
-                  <Text style={styles.codeBtnText}>Код: {perk.promoCode} ❐</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
-    </SafeAreaView>
+
+      {/* Perks Grid */}
+      <View style={styles.perksGrid}>
+        {filtered.map((perk) => {
+          const isCopied = copiedId === perk.id;
+          return (
+            <View
+              key={perk.id}
+              style={[styles.perkCard, isDesktop && styles.perkCardDesktop]}
+            >
+              <View style={styles.perkHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerName}>{perk.partnerName}</Text>
+                  <Text style={styles.perkTitle}>{perk.title}</Text>
+                </View>
+                <View style={styles.discountBadge}>
+                  <Text style={styles.discountText}>{perk.discount}</Text>
+                </View>
+              </View>
+
+              <Text style={styles.perkDesc}>{perk.description}</Text>
+
+              <View style={styles.perkFooter}>
+                <Text style={styles.expiryText}>До {perk.expiresAt}</Text>
+                {perk.promoCode && (
+                  <TouchableOpacity
+                    style={[styles.codeBtn, isCopied && styles.codeBtnCopied]}
+                    onPress={() => handleCopy(perk.id, perk.promoCode)}
+                    activeOpacity={0.8}
+                  >
+                    {isCopied ? (
+                      <Check size={12} color={COLORS.accentBright} strokeWidth={2.5} />
+                    ) : (
+                      <Copy size={12} color={COLORS.textSecondary} strokeWidth={1.75} />
+                    )}
+                    <Text style={[styles.codeText, isCopied && { color: COLORS.accentBright }]}>
+                      {isCopied ? 'Скопировано' : perk.promoCode}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#070A11",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.06)",
-  },
-  backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: "#94A3B8",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 50,
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  heroBanner: {
-    backgroundColor: "#111827",
-    borderRadius: 20,
-    padding: 20,
+  heroCard: {
+    borderRadius: RADIUS.xl,
     borderWidth: 1,
-    borderColor: "rgba(14, 165, 233, 0.4)",
-    marginBottom: 20,
+    borderColor: COLORS.borderStrong,
+    padding: 20,
+    marginBottom: 18,
+    gap: 6,
   },
-  heroBrand: {
-    color: "#0EA5E9",
+  heroTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroTagText: {
+    color: COLORS.accentBright,
     fontSize: 10,
-    fontWeight: "800",
+    fontWeight: '700',
     letterSpacing: 1,
-    marginBottom: 4,
+    fontFamily: FONT_FAMILY.sans,
   },
   heroTitle: {
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
     fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 6,
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.sans,
   },
   heroDesc: {
-    color: "#94A3B8",
+    color: COLORS.textSecondary,
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 19,
+    fontFamily: FONT_FAMILY.sans,
   },
-  catScroll: {
-    flexDirection: "row",
+  catRow: {
+    flexDirection: 'row',
     gap: 8,
-    marginBottom: 20,
   },
   catPill: {
     paddingVertical: 8,
     paddingHorizontal: 14,
-    backgroundColor: "#111827",
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.pill,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: COLORS.border,
   },
   catPillActive: {
-    backgroundColor: "rgba(14, 165, 233, 0.2)",
-    borderColor: "#0EA5E9",
+    backgroundColor: COLORS.surfaceElevated,
+    borderColor: COLORS.borderAccent,
   },
-  catPillText: {
+  catText: {
+    color: COLORS.textSecondary,
     fontSize: 12,
-    color: "#94A3B8",
-    fontWeight: "600",
+    fontWeight: '500',
+    fontFamily: FONT_FAMILY.sans,
   },
-  catPillTextActive: {
-    color: "#0EA5E9",
-    fontWeight: "700",
+  catTextActive: {
+    color: COLORS.accentBright,
+    fontWeight: '600',
+  },
+  perksGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 14,
   },
   perkCard: {
-    backgroundColor: "#111827",
-    borderRadius: 18,
-    padding: 16,
+    width: '100%',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    marginBottom: 14,
+    borderColor: COLORS.border,
+    padding: 18,
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  perkTopRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
+  perkCardDesktop: {
+    width: '49%',
   },
-  brandInfo: {
-    flex: 1,
+  perkHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 10,
   },
-  brandName: {
-    color: "#0EA5E9",
+  partnerName: {
+    color: COLORS.textTertiary,
     fontSize: 11,
-    fontWeight: "800",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontWeight: '600',
+    letterSpacing: 0.4,
+    fontFamily: FONT_FAMILY.sans,
   },
   perkTitle: {
-    color: "#FFFFFF",
+    color: COLORS.textPrimary,
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: '600',
     marginTop: 2,
+    fontFamily: FONT_FAMILY.sans,
   },
   discountBadge: {
-    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    backgroundColor: COLORS.accentSoft,
+    borderWidth: 1,
+    borderColor: COLORS.borderAccent,
+    paddingHorizontal: 9,
     paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    borderRadius: RADIUS.pill,
   },
   discountText: {
-    color: "#10B981",
-    fontSize: 13,
-    fontWeight: "800",
+    color: COLORS.accentBright,
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: FONT_FAMILY.sans,
   },
   perkDesc: {
-    color: "#CBD5E1",
+    color: COLORS.textSecondary,
     fontSize: 12,
-    lineHeight: 17,
-    marginBottom: 12,
+    lineHeight: 18,
+    fontFamily: FONT_FAMILY.sans,
   },
   perkFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.04)",
-    paddingTop: 10,
+    borderTopColor: COLORS.border,
+    paddingTop: 12,
   },
   expiryText: {
-    color: "#64748B",
+    color: COLORS.textTertiary,
     fontSize: 11,
+    fontFamily: FONT_FAMILY.mono,
   },
   codeBtn: {
-    backgroundColor: "rgba(255,255,255,0.06)",
-    paddingVertical: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     paddingHorizontal: 10,
-    borderRadius: 8,
+    paddingVertical: 6,
+    borderRadius: RADIUS.sm,
   },
-  codeBtnText: {
-    color: "#FFFFFF",
+  codeBtnCopied: {
+    borderColor: COLORS.borderAccent,
+    backgroundColor: COLORS.accentSoft,
+  },
+  codeText: {
+    color: COLORS.textPrimary,
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '600',
+    fontFamily: FONT_FAMILY.mono,
   },
 });
