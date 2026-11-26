@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { StatusBar } from "expo-status-bar";
-import { View, StyleSheet } from "react-native";
+import React, { useEffect, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import {
   MOCK_STUDENT,
@@ -11,42 +11,74 @@ import {
   MOCK_PERKS,
   MOCK_CERTIFICATES,
   MOCK_MESSAGES,
-} from "./src/data/mockData";
-import { Classroom } from "./src/types";
+} from './src/data/mockData';
+import { Classroom } from './src/types';
+import { COLORS } from './src/theme/tokens';
 
-// BankApp-style screens
-import LoginScreen from "./src/components/LoginScreen";
-import { ForgotPassword } from "./src/components/ForgotPassword";
-import { Dashboard } from "./src/components/Dashboard";
-import { DigitalIdScreen } from "./src/components/DigitalIdScreen";
-import { AttendanceScreen } from "./src/components/AttendanceScreen";
-import { GradesJournalScreen } from "./src/components/GradesJournalScreen";
-import { ScheduleScreen } from "./src/components/ScheduleScreen";
-import { SyllabusWikiScreen } from "./src/components/SyllabusWikiScreen";
-import { TeacherControlScreen } from "./src/components/TeacherControlScreen";
-import { FreedomPerksScreen } from "./src/components/FreedomPerksScreen";
-import { CertificatesScreen } from "./src/components/CertificatesScreen";
-import { ChatScreen } from "./src/components/ChatScreen";
-import { SettingScreen } from "./src/components/SettingScreen";
-import { ChangePasswordScreen } from "./src/components/ChangePasswordScreen";
-import { LanguageScreen } from "./src/components/LanguageScreen";
-import { AppInfoScreen } from "./src/components/AppInfoScreen";
+import LoginScreen from './src/components/LoginScreen';
+import { ForgotPassword } from './src/components/ForgotPassword';
+import { Dashboard } from './src/components/Dashboard';
+import { DigitalIdScreen } from './src/components/DigitalIdScreen';
+import { AttendanceScreen } from './src/components/AttendanceScreen';
+import { GradesJournalScreen } from './src/components/GradesJournalScreen';
+import { ScheduleScreen } from './src/components/ScheduleScreen';
+import { SyllabusWikiScreen } from './src/components/SyllabusWikiScreen';
+import { TeacherControlScreen } from './src/components/TeacherControlScreen';
+import { FreedomPerksScreen } from './src/components/FreedomPerksScreen';
+import { CertificatesScreen } from './src/components/CertificatesScreen';
+import { ChatScreen } from './src/components/ChatScreen';
+import { SettingScreen } from './src/components/SettingScreen';
+import { ChangePasswordScreen } from './src/components/ChangePasswordScreen';
+import { LanguageScreen } from './src/components/LanguageScreen';
+import { AppInfoScreen } from './src/components/AppInfoScreen';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<string>("dashboard");
+  const [currentPage, setCurrentPage] = useState<string>('dashboard');
   const [activeClassroom, setActiveClassroom] = useState<Classroom>(MOCK_CLASSROOMS[0]);
 
-  // Page routing
+  // Inject Inter Google Font and crisp dark web body rules
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    if (!document.getElementById('arc-edu-inter-font')) {
+      const link = document.createElement('link');
+      link.id = 'arc-edu-inter-font';
+      link.rel = 'stylesheet';
+      link.href =
+        'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
+      document.head.appendChild(link);
+    }
+
+    if (!document.getElementById('arc-edu-web-polish')) {
+      const style = document.createElement('style');
+      style.id = 'arc-edu-web-polish';
+      style.textContent = `
+        html, body, #root {
+          background-color: #090A0D !important;
+          margin: 0;
+          padding: 0;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090A0D; }
+        ::-webkit-scrollbar-thumb { background: #1F232E; border-radius: 3px; }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   const navigateTo = (page: string) => {
     setCurrentPage(page);
   };
 
   const handleLoginSuccess = () => {
-    setCurrentPage("dashboard");
+    setCurrentPage('dashboard');
   };
 
   const handleLogout = () => {
-    setCurrentPage("login");
+    setCurrentPage('login');
   };
 
   const handleRelocateClassroom = (newRoom: Classroom) => {
@@ -57,18 +89,18 @@ export default function App() {
     <View style={styles.root}>
       <StatusBar style="light" />
 
-      {currentPage === "login" && (
+      {currentPage === 'login' && (
         <LoginScreen
           onLoginSuccess={handleLoginSuccess}
-          onNavigateForgotPassword={() => navigateTo("forgot-password")}
+          onNavigateForgotPassword={() => navigateTo('forgot-password')}
         />
       )}
 
-      {currentPage === "forgot-password" && (
-        <ForgotPassword onBack={() => navigateTo("login")} />
+      {currentPage === 'forgot-password' && (
+        <ForgotPassword onBack={() => navigateTo('login')} />
       )}
 
-      {currentPage === "dashboard" && (
+      {currentPage === 'dashboard' && (
         <Dashboard
           student={MOCK_STUDENT}
           activeClassroom={activeClassroom}
@@ -77,92 +109,146 @@ export default function App() {
         />
       )}
 
-      {currentPage === "digital-id" && (
+      {currentPage === 'digital-id' && (
         <DigitalIdScreen
           student={MOCK_STUDENT}
-          onBack={() => navigateTo("dashboard")}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('dashboard')}
         />
       )}
 
-      {currentPage === "attendance" && (
+      {currentPage === 'attendance' && (
         <AttendanceScreen
+          student={MOCK_STUDENT}
           classroom={activeClassroom}
-          onBack={() => navigateTo("dashboard")}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('dashboard')}
         />
       )}
 
-      {currentPage === "grades" && (
+      {currentPage === 'grades' && (
         <GradesJournalScreen
+          student={MOCK_STUDENT}
           grades={MOCK_GRADES}
           gpa={MOCK_STUDENT.gpa}
-          onBack={() => navigateTo("dashboard")}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('dashboard')}
         />
       )}
 
-      {currentPage === "schedule" && (
+      {currentPage === 'schedule' && (
         <ScheduleScreen
+          student={MOCK_STUDENT}
           schedule={MOCK_SCHEDULE}
-          onBack={() => navigateTo("dashboard")}
-          onNavigateAttendance={() => navigateTo("attendance")}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('dashboard')}
+          onNavigateAttendance={() => navigateTo('attendance')}
         />
       )}
 
-      {currentPage === "syllabus" && (
+      {currentPage === 'syllabus' && (
         <SyllabusWikiScreen
+          student={MOCK_STUDENT}
           topics={MOCK_SYLLABUS}
-          onBack={() => navigateTo("dashboard")}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('dashboard')}
         />
       )}
 
-      {currentPage === "teacher" && (
+      {currentPage === 'teacher' && (
         <TeacherControlScreen
+          student={MOCK_STUDENT}
           currentClassroom={activeClassroom}
           availableClassrooms={MOCK_CLASSROOMS}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
           onRelocateClassroom={handleRelocateClassroom}
-          onBack={() => navigateTo("dashboard")}
+          onBack={() => navigateTo('dashboard')}
         />
       )}
 
-      {currentPage === "perks" && (
+      {currentPage === 'perks' && (
         <FreedomPerksScreen
+          student={MOCK_STUDENT}
           perks={MOCK_PERKS}
-          onBack={() => navigateTo("dashboard")}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('dashboard')}
         />
       )}
 
-      {currentPage === "certificates" && (
+      {currentPage === 'certificates' && (
         <CertificatesScreen
+          student={MOCK_STUDENT}
           certificates={MOCK_CERTIFICATES}
-          onBack={() => navigateTo("dashboard")}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('dashboard')}
         />
       )}
 
-      {currentPage === "chat" && (
+      {currentPage === 'chat' && (
         <ChatScreen
+          student={MOCK_STUDENT}
           initialMessages={MOCK_MESSAGES}
-          onBack={() => navigateTo("dashboard")}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('dashboard')}
         />
       )}
 
-      {currentPage === "settings" && (
+      {currentPage === 'settings' && (
         <SettingScreen
           student={MOCK_STUDENT}
-          onBack={() => navigateTo("dashboard")}
+          currentPage={currentPage}
+          onBack={() => navigateTo('dashboard')}
           onNavigate={navigateTo}
           onLogout={handleLogout}
         />
       )}
 
-      {currentPage === "change-password" && (
-        <ChangePasswordScreen onBack={() => navigateTo("settings")} />
+      {currentPage === 'change-password' && (
+        <ChangePasswordScreen
+          student={MOCK_STUDENT}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('settings')}
+        />
       )}
 
-      {currentPage === "language" && (
-        <LanguageScreen onBack={() => navigateTo("settings")} />
+      {currentPage === 'language' && (
+        <LanguageScreen
+          student={MOCK_STUDENT}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('settings')}
+        />
       )}
 
-      {currentPage === "app-info" && (
-        <AppInfoScreen onBack={() => navigateTo("settings")} />
+      {currentPage === 'app-info' && (
+        <AppInfoScreen
+          student={MOCK_STUDENT}
+          currentPage={currentPage}
+          onNavigate={navigateTo}
+          onLogout={handleLogout}
+          onBack={() => navigateTo('settings')}
+        />
       )}
     </View>
   );
@@ -171,6 +257,6 @@ export default function App() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#070A11",
+    backgroundColor: COLORS.bg,
   },
 });
